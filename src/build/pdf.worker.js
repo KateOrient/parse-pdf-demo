@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '81f5835c';
+var pdfjsBuild = '2372540';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -418,7 +418,7 @@ var WorkerMessageHandler = {
       _loadDocument = _asyncToGenerator(
       /*#__PURE__*/
       _regenerator.default.mark(function _callee(recoveryMode) {
-        var _ref6, _ref7, numPages, fingerprint;
+        var _ref6, _ref7, numPages, fingerprint, structureTree;
 
         return _regenerator.default.wrap(function _callee$(_context) {
           while (1) {
@@ -446,19 +446,21 @@ var WorkerMessageHandler = {
 
               case 9:
                 _context.next = 11;
-                return Promise.all([pdfManager.ensureDoc('numPages'), pdfManager.ensureDoc('fingerprint')]);
+                return Promise.all([pdfManager.ensureDoc('numPages'), pdfManager.ensureDoc('fingerprint'), pdfManager.ensureDoc('structureTree')]);
 
               case 11:
                 _ref6 = _context.sent;
-                _ref7 = _slicedToArray(_ref6, 2);
+                _ref7 = _slicedToArray(_ref6, 3);
                 numPages = _ref7[0];
                 fingerprint = _ref7[1];
+                structureTree = _ref7[2];
                 return _context.abrupt("return", {
                   numPages: numPages,
-                  fingerprint: fingerprint
+                  fingerprint: fingerprint,
+                  structureTree: structureTree
                 });
 
-              case 16:
+              case 17:
               case "end":
                 return _context.stop();
             }
@@ -12963,6 +12965,11 @@ function () {
       return (0, _util.shadow)(this, 'numPages', num);
     }
   }, {
+    key: "structureTree",
+    get: function get() {
+      return (0, _util.shadow)(this, 'structureTree', this.catalog.structureTree);
+    }
+  }, {
     key: "documentInfo",
     get: function get() {
       var DocumentInfoValidators = {
@@ -13134,6 +13141,8 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -13164,6 +13173,31 @@ function () {
   }
 
   _createClass(CatalogMain, [{
+    key: "getTreeElement",
+    value: function getTreeElement(el) {
+      var _this = this;
+
+      if (el.has && el.has('K')) {
+        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K')));
+      }
+
+      if (Array.isArray(el)) {
+        return el.map(function (subel) {
+          if (Number.isInteger(subel)) {
+            return subel;
+          } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
+            return _this.getTreeElement(subel);
+          } else {
+            return _this.getTreeElement(_this.xref.fetch(subel));
+          }
+        });
+      }
+
+      if (Number.isInteger(el)) {
+        return el;
+      }
+    }
+  }, {
     key: "_readDocumentOutline",
     value: function _readDocumentOutline() {
       var obj = this.catDict.get('Outlines');
@@ -13453,7 +13487,7 @@ function () {
   }, {
     key: "cleanup",
     value: function cleanup() {
-      var _this = this;
+      var _this2 = this;
 
       this.pageKidsCountCache.clear();
       var promises = [];
@@ -13466,9 +13500,9 @@ function () {
           delete font.translated;
         }
 
-        _this.fontCache.clear();
+        _this2.fontCache.clear();
 
-        _this.builtInCMapCache.clear();
+        _this2.builtInCMapCache.clear();
       });
     }
   }, {
@@ -13709,6 +13743,22 @@ function () {
       }
 
       return (0, _util.shadow)(this, 'metadata', metadata);
+    }
+  }, {
+    key: "structTreeRoot",
+    get: function get() {
+      var structTreeRoot = this.catDict.get('StructTreeRoot');
+
+      if (!(0, _primitives.isDict)(structTreeRoot)) {
+        throw new _util.FormatError('Invalid struct tree root dictionary.');
+      }
+
+      return (0, _util.shadow)(this, 'structTreeRoot', structTreeRoot);
+    }
+  }, {
+    key: "structureTree",
+    get: function get() {
+      return (0, _util.shadow)(this, 'structureTree', this.getTreeElement(this.structTreeRoot.get('K')));
     }
   }, {
     key: "toplevelPagesDict",
@@ -15235,7 +15285,7 @@ var ObjectLoader = function () {
       return this.capability.promise;
     },
     _walk: function _walk(nodesToVisit) {
-      var _this2 = this;
+      var _this3 = this;
 
       var nodesToRevisit = [];
       var pendingRequests = [];
@@ -15294,11 +15344,11 @@ var ObjectLoader = function () {
             var node = nodesToRevisit[_i4];
 
             if ((0, _primitives.isRef)(node)) {
-              _this2.refSet.remove(node);
+              _this3.refSet.remove(node);
             }
           }
 
-          _this2._walk(nodesToRevisit);
+          _this3._walk(nodesToRevisit);
         }, this.capability.reject);
         return;
       }
@@ -15318,15 +15368,15 @@ function (_CatalogMain) {
   _inherits(Catalog, _CatalogMain);
 
   function Catalog(pdfManager, xref) {
-    var _this3;
+    var _this4;
 
     _classCallCheck(this, Catalog);
 
-    _this3 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
-    _this3.structure = _this3.xref.root.get('StructTreeRoot');
-    _this3.ClassMap = _this3._getClassMap();
-    _this3.RoleMap = _this3._getRoleMap();
-    return _this3;
+    _this4 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
+    _this4.structure = _this4.xref.root.get('StructTreeRoot');
+    _this4.ClassMap = _this4._getClassMap();
+    _this4.RoleMap = _this4._getRoleMap();
+    return _this4;
   }
 
   _createClass(Catalog, [{
@@ -15359,7 +15409,7 @@ function (_CatalogMain) {
   }, {
     key: "_convertDict",
     value: function _convertDict(dict) {
-      var _this4 = this;
+      var _this5 = this;
 
       var objectToReturn = {};
       var keysArray = dict.getKeys();
@@ -15367,7 +15417,7 @@ function (_CatalogMain) {
         var keyValue = dict.get(key);
 
         if ((0, _primitives.isDict)(keyValue)) {
-          objectToReturn[key] = _this4._convertDict(keyValue);
+          objectToReturn[key] = _this5._convertDict(keyValue);
         } else {
           objectToReturn[key] = keyValue;
         }

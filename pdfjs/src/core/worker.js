@@ -269,11 +269,12 @@ var WorkerMessageHandler = {
         await pdfManager.ensureDoc('checkFirstPage');
       }
 
-      const [numPages, fingerprint] = await Promise.all([
+      const [numPages, fingerprint, structureTree] = await Promise.all([
         pdfManager.ensureDoc('numPages'),
         pdfManager.ensureDoc('fingerprint'),
+        pdfManager.ensureDoc('structureTree'),
       ]);
-      return { numPages, fingerprint, };
+      return { numPages, fingerprint, structureTree, };
     }
 
     function getPdfManager(data, evaluatorOptions) {

@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '81f5835c';
+var pdfjsBuild = '2372540';
 
 var pdfjsSharedUtil = __w_pdfjs_require__(1);
 
@@ -10453,6 +10453,11 @@ function () {
       return this._pdfInfo.numPages;
     }
   }, {
+    key: "structureTree",
+    get: function get() {
+      return this._pdfInfo.structureTree;
+    }
+  }, {
     key: "fingerprint",
     get: function get() {
       return this._pdfInfo.fingerprint;
@@ -12208,7 +12213,7 @@ var InternalRenderTask = function InternalRenderTaskClosure() {
 
 var version = '2.1.266';
 exports.version = version;
-var build = '81f5835c';
+var build = '2372540';
 exports.build = build;
 
 /***/ }),

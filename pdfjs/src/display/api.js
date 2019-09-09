@@ -590,6 +590,13 @@ class PDFDocumentProxy {
   }
 
   /**
+   * @return {object} A Struct Tree object
+   */
+  get structureTree() {
+    return this._pdfInfo.structureTree;
+  }
+
+  /**
    * @return {string} A (not guaranteed to be) unique ID to identify a PDF.
    */
   get fingerprint() {
