@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
-import testPdf from './test.pdf';
+import testPdf from './test_2.pdf';
 import _ from 'lodash';
 
 //  Set pdf.js build
@@ -14,7 +14,8 @@ let uploadInputRef;
 
 function onPageRenderSuccess(page) {
     page.getOperatorList().then((data) => {
-        console.log('Data:', data);
+        let positionData = data.argsArray[data.argsArray.length - 1][0];
+        console.log('Data:', positionData);
 
         let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
         let rect = canvas.getBoundingClientRect();
@@ -27,19 +28,16 @@ function onPageRenderSuccess(page) {
         div.id = 'div' + page.pageIndex;
         document.body.appendChild(div);
 
-        let positionData = data.argsArray[data.argsArray.length - 1][0];
         div = document.getElementById('div' + page.pageIndex);
-        _.map(positionData, (mcPositions) => {
-            _.map(mcPositions, position => {
-                let child = document.createElement('div');
-                child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
-                child.style.left = position.x + 'px';
-                child.style.height = position.height + 'px';
-                child.style.width = position.width + 'px';
-                child.style.border = '1px solid red';
-                child.style.position = 'absolute';
-                div.appendChild(child);
-            })
+        _.map(positionData, (position) => {
+            let child = document.createElement('div');
+            child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
+            child.style.left = position.x + 'px';
+            child.style.height = position.height + 'px';
+            child.style.width = position.width + 'px';
+            child.style.border = '1px solid red';
+            child.style.position = 'absolute';
+            div.appendChild(child);
         })
     });
 }

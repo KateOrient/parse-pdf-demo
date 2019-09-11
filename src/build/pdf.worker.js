@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f787b6c';
+var pdfjsBuild = '4083193';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31091,6 +31091,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
 
+
           switch (fn | 0) {
             case _util.OPS.paintXObject:
               var name = args[0].name;
@@ -31205,16 +31206,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               args[0].map(function (glyph) {
                 mc_width += glyph.width * textMatrix[0];
               });
-
-              if (Number.isInteger(mcid)) {
-                positionByMCID[mcid].push({
-                  x: mc_x,
-                  width: mc_width,
-                  y: mc_y,
-                  height: mc_height
-                });
-              }
-
               break;
 
             case _util.OPS.showSpacedText:
@@ -31239,16 +31230,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               args[0].map(function (glyph) {
                 mc_width += (glyph.width ? glyph.width : glyph) * textMatrix[0];
               });
-
-              if (Number.isInteger(mcid)) {
-                positionByMCID[mcid].push({
-                  x: mc_x,
-                  width: mc_width,
-                  y: mc_y,
-                  height: mc_height
-                });
-              }
-
               break;
 
             case _util.OPS.nextLineShowText:
@@ -31397,10 +31378,15 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.beginMarkedContent:
             case _util.OPS.beginMarkedContentProps:
               mcid = args[1].get('MCID');
-              positionByMCID[mcid] = [];
               continue;
 
             case _util.OPS.endMarkedContent:
+              positionByMCID[mcid] = {
+                x: mc_x,
+                y: mc_y,
+                width: mc_width,
+                height: mc_height
+              };
               mcid = null;
               continue;
 

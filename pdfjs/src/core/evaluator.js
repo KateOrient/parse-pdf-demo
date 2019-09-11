@@ -1081,9 +1081,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               args[0].map(glyph => {
                 mc_width += glyph.width * textMatrix[0]
               });
-              if (Number.isInteger(mcid)) {
-                positionByMCID[mcid].push({x: mc_x, width: mc_width, y: mc_y, height: mc_height});
-              }
               break;
             case OPS.showSpacedText:
               var arr = args[0];
@@ -1105,9 +1102,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               args[0].map(glyph => {
                 mc_width += (glyph.width ? glyph.width : glyph) * textMatrix[0];
               });
-              if (Number.isInteger(mcid)) {
-                positionByMCID[mcid].push({x: mc_x, width: mc_width, y: mc_y, height: mc_height});
-              }
               break;
             case OPS.nextLineShowText:
               operatorList.addOp(OPS.nextLine);
@@ -1239,9 +1233,9 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.beginMarkedContent:
             case OPS.beginMarkedContentProps:
               mcid = args[1].get('MCID');
-              positionByMCID[mcid] = [];
               continue;
             case OPS.endMarkedContent:
+              positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
               mcid = null;
               continue;
             case OPS.beginCompat:
