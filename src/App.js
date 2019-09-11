@@ -29,7 +29,7 @@ function Pages({ numPages }) {
                       transform: contain coordinates of text
                       scale: will be used for coords. conversing
                        */
-                      return (<mark>{str}</mark>);
+                      return str;
                   }}
             />
         );
@@ -60,10 +60,10 @@ class App extends React.Component {
             // let canvas = $('canvas');
             // let ctx = canvas.getContext('2d');
             // ctx.strokeRect(x, y - height, width, height)
-            /*page.getOperatorList().then((data) => {
+            page.getOperatorList().then((data) => {
                 console.log('Data:');
-                console.log(data);
-            });*/
+                console.log(data.argsArray[data.argsArray.length - 1]);
+            });
         });
 
         document.getMetadata().then(({ info, metadata, contentDispositionFilename, }) => {

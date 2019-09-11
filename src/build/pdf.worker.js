@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '2372540';
+var pdfjsBuild = 'b0872b2';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -30746,7 +30746,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }).then(function (translated) {
         state.font = translated.font;
         translated.send(_this4.handler);
-        return translated.loadedName;
+        return translated;
       });
     },
     handleText: function handleText(chars, state) {
@@ -30792,9 +30792,9 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           case 'Font':
             promise = promise.then(function () {
-              return _this5.handleSetFont(resources, null, value[0], operatorList, task, stateManager.state).then(function (loadedName) {
-                operatorList.addDependency(loadedName);
-                gStateObj.push([key, [loadedName, value[1]]]);
+              return _this5.handleSetFont(resources, null, value[0], operatorList, task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                gStateObj.push([key, [translated.loadedName, value[1]]]);
               });
             });
             break;
@@ -31057,6 +31057,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      var positionByMCID = {};
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31075,6 +31076,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             i,
             ii,
             cs;
+        var mcid = null;
 
         while (!(stop = timeSlotManager.check())) {
           operation.args = null;
@@ -31157,9 +31159,9 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setFont:
               var fontSize = args[1];
-              next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (loadedName) {
-                operatorList.addDependency(loadedName);
-                operatorList.addOp(_util.OPS.setFont, [loadedName, fontSize]);
+              next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                operatorList.addOp(_util.OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
 
@@ -31355,7 +31357,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.markPointProps:
             case _util.OPS.beginMarkedContent:
             case _util.OPS.beginMarkedContentProps:
+              mcid = args[1].get('MCID');
+              positionByMCID[mcid] = {};
+              continue;
+
             case _util.OPS.endMarkedContent:
+              mcid = null;
+              continue;
+
             case _util.OPS.beginCompat:
             case _util.OPS.endCompat:
               continue;
@@ -31385,6 +31394,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
 
         closePendingRestoreOPS();
+        operatorList.addOp(_util.OPS.save, [positionByMCID]);
         resolve();
       }).catch(function (reason) {
         if (_this7.options.ignoreErrors) {

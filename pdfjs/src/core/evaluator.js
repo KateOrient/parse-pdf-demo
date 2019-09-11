@@ -606,7 +606,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       }).then((translated) => {
         state.font = translated.font;
         translated.send(this.handler);
-        return translated.loadedName;
+        return translated;
       });
     },
 
@@ -652,11 +652,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           case 'Font':
             promise = promise.then(() => {
               return this.handleSetFont(resources, null, value[0], operatorList,
-                                        task, stateManager.state).
-                then(function (loadedName) {
-                  operatorList.addDependency(loadedName);
-                  gStateObj.push([key, [loadedName, value[1]]]);
-                });
+                task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                gStateObj.push([key, [translated.loadedName, value[1]]]);
+              });
             });
             break;
           case 'BM':
@@ -932,6 +931,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      var positionByMCID = {};
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -945,6 +945,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         task.ensureNotTerminated();
         timeSlotManager.reset();
         var stop, operation = {}, i, ii, cs;
+        var mcid = null;
         while (!(stop = timeSlotManager.check())) {
           // The arguments parsed by read() are used beyond this loop, so we
           // cannot reuse the same array on each iteration. Therefore we pass
@@ -1030,11 +1031,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               var fontSize = args[1];
               // eagerly collect all fonts
               next(self.handleSetFont(resources, args, null, operatorList,
-                                      task, stateManager.state).
-                then(function (loadedName) {
-                  operatorList.addDependency(loadedName);
-                  operatorList.addOp(OPS.setFont, [loadedName, fontSize]);
-                }));
+                task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                operatorList.addOp(OPS.setFont, [translated.loadedName, fontSize]);
+              }));
               return;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -1204,7 +1204,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
             case OPS.beginMarkedContentProps:
+              mcid = args[1].get('MCID');
+              positionByMCID[mcid] = {};
+              continue;
             case OPS.endMarkedContent:
+              mcid = null;
+              continue;
             case OPS.beginCompat:
             case OPS.endCompat:
               // Ignore operators where the corresponding handlers are known to
@@ -1239,6 +1244,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         // Some PDFs don't close all restores inside object/form.
         // Closing those for them.
         closePendingRestoreOPS();
+        // Add extra data about marked content as last element of operator list
+        // with corresponding function 'save', because it won't affect on
+        // the process of rendering
+        operatorList.addOp(OPS.save, [positionByMCID]);
         resolve();
       }).catch((reason) => {
         if (this.options.ignoreErrors) {
