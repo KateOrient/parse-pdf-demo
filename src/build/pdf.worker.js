@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'b0872b2';
+var pdfjsBuild = 'f787b6c';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31058,6 +31058,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }
 
       var positionByMCID = {};
+      var textMatrix = [];
+      var fontMatrix = [];
+      var mc_x, mc_width, mc_y, mc_height;
+      var mcid = null;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31076,7 +31080,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             i,
             ii,
             cs;
-        var mcid = null;
 
         while (!(stop = timeSlotManager.check())) {
           operation.args = null;
@@ -31161,9 +31164,17 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               var fontSize = args[1];
               next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (translated) {
                 operatorList.addDependency(translated.loadedName);
+                fontMatrix = translated.font.fontMatrix;
                 operatorList.addOp(_util.OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
+
+            case _util.OPS.setTextMatrix:
+              mc_x = args[4];
+              mc_y = args[5];
+              mc_height = args[0];
+              textMatrix = _util.Util.transform(fontMatrix, args);
+              break;
 
             case _util.OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -31190,6 +31201,20 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
+              mc_width = 0;
+              args[0].map(function (glyph) {
+                mc_width += glyph.width * textMatrix[0];
+              });
+
+              if (Number.isInteger(mcid)) {
+                positionByMCID[mcid].push({
+                  x: mc_x,
+                  width: mc_width,
+                  y: mc_y,
+                  height: mc_height
+                });
+              }
+
               break;
 
             case _util.OPS.showSpacedText:
@@ -31210,6 +31235,20 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
               args[0] = combinedGlyphs;
               fn = _util.OPS.showText;
+              mc_width = 0;
+              args[0].map(function (glyph) {
+                mc_width += (glyph.width ? glyph.width : glyph) * textMatrix[0];
+              });
+
+              if (Number.isInteger(mcid)) {
+                positionByMCID[mcid].push({
+                  x: mc_x,
+                  width: mc_width,
+                  y: mc_y,
+                  height: mc_height
+                });
+              }
+
               break;
 
             case _util.OPS.nextLineShowText:
@@ -31358,7 +31397,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.beginMarkedContent:
             case _util.OPS.beginMarkedContentProps:
               mcid = args[1].get('MCID');
-              positionByMCID[mcid] = {};
+              positionByMCID[mcid] = [];
               continue;
 
             case _util.OPS.endMarkedContent:

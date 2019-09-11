@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
 import testPdf from './test.pdf';
+import _ from 'lodash';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
@@ -10,6 +11,38 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 
 let uploadInputRef;
+
+function onPageRenderSuccess(page) {
+    page.getOperatorList().then((data) => {
+        console.log('Data:', data);
+
+        let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
+        let rect = canvas.getBoundingClientRect();
+        let div = document.createElement('div');
+        div.style.top = rect.y + 'px';
+        div.style.left = rect.x + 'px';
+        div.style.height = rect.height + 'px';
+        div.style.width = rect.width + 'px';
+        div.style.position = 'absolute';
+        div.id = 'div' + page.pageIndex;
+        document.body.appendChild(div);
+
+        let positionData = data.argsArray[data.argsArray.length - 1][0];
+        div = document.getElementById('div' + page.pageIndex);
+        _.map(positionData, (mcPositions) => {
+            _.map(mcPositions, position => {
+                let child = document.createElement('div');
+                child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
+                child.style.left = position.x + 'px';
+                child.style.height = position.height + 'px';
+                child.style.width = position.width + 'px';
+                child.style.border = '1px solid red';
+                child.style.position = 'absolute';
+                div.appendChild(child);
+            })
+        })
+    });
+}
 
 function Pages({ numPages }) {
     let pagesArray = [];
@@ -22,6 +55,7 @@ function Pages({ numPages }) {
                   renderAnnotationLayer={true}
                   renderInteractiveForms={true}
                   renderTextLayer={true}
+                  onRenderSuccess={onPageRenderSuccess}
                   customTextRenderer={({height,  width, transform, scale, page, str}) => {
                       /*
                       height: height of text
@@ -52,19 +86,6 @@ class App extends React.Component {
 
     onDocumentLoadSuccess = (document) => {
         console.log(document);
-        document.getPage(1).then((page) => {
-            //console.log(page.objs.get("img_p0_1"));
-            // window.page = page;
-            // window.viewport = page.getViewport({scale});
-            // viewport.convertToPdfPoint(x, y)
-            // let canvas = $('canvas');
-            // let ctx = canvas.getContext('2d');
-            // ctx.strokeRect(x, y - height, width, height)
-            page.getOperatorList().then((data) => {
-                console.log('Data:');
-                console.log(data.argsArray[data.argsArray.length - 1]);
-            });
-        });
 
         document.getMetadata().then(({ info, metadata, contentDispositionFilename, }) => {
             let title = info.Title || this.state.pdf.name;
