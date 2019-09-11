@@ -943,7 +943,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       }
 
       var positionByMCID = {};
-      var textMatrix = [];
+      var transformMatrix = [];
       var fontMatrix = [];
       var mc_x, mc_width, mc_y, mc_height;
       var mcid = null;
@@ -973,6 +973,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           var fn = operation.fn;
 
           switch (fn | 0) {
+            case OPS.transform:
+              mc_x = args[4];
+              mc_y = args[5];
+              mc_width = args[0];
+              mc_height = args[3];
+              break;
             case OPS.paintXObject:
               // eagerly compile XForm objects
               var name = args[0].name;
@@ -1054,7 +1060,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mc_x = args[4];
               mc_y = args[5];
               mc_height = args[0];
-              textMatrix = Util.transform(fontMatrix, args);
+              transformMatrix = Util.transform(fontMatrix, args);
               break;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -1079,7 +1085,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               args[0] = self.handleText(args[0], stateManager.state);
               mc_width = 0;
               args[0].map(glyph => {
-                mc_width += glyph.width * textMatrix[0]
+                mc_width += glyph.width * transformMatrix[0]
               });
               break;
             case OPS.showSpacedText:
@@ -1100,7 +1106,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               fn = OPS.showText;
               mc_width = 0;
               args[0].map(glyph => {
-                mc_width += (glyph.width ? glyph.width : glyph) * textMatrix[0];
+                mc_width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
               });
               break;
             case OPS.nextLineShowText:
@@ -1235,7 +1241,9 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcid = args[1].get('MCID');
               continue;
             case OPS.endMarkedContent:
-              positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
+              if (Number.isInteger(mcid)) {
+                positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
+              }
               mcid = null;
               continue;
             case OPS.beginCompat:

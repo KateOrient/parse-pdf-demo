@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '4083193';
+var pdfjsBuild = '395c450';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31058,7 +31058,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }
 
       var positionByMCID = {};
-      var textMatrix = [];
+      var transformMatrix = [];
       var fontMatrix = [];
       var mc_x, mc_width, mc_y, mc_height;
       var mcid = null;
@@ -31091,8 +31091,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
 
-
           switch (fn | 0) {
+            case _util.OPS.transform:
+              mc_x = args[4];
+              mc_y = args[5];
+              mc_width = args[0];
+              mc_height = args[3];
+              break;
+
             case _util.OPS.paintXObject:
               var name = args[0].name;
 
@@ -31174,7 +31180,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               mc_x = args[4];
               mc_y = args[5];
               mc_height = args[0];
-              textMatrix = _util.Util.transform(fontMatrix, args);
+              transformMatrix = _util.Util.transform(fontMatrix, args);
               break;
 
             case _util.OPS.endInlineImage:
@@ -31204,7 +31210,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               args[0] = self.handleText(args[0], stateManager.state);
               mc_width = 0;
               args[0].map(function (glyph) {
-                mc_width += glyph.width * textMatrix[0];
+                mc_width += glyph.width * transformMatrix[0];
               });
               break;
 
@@ -31228,7 +31234,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               fn = _util.OPS.showText;
               mc_width = 0;
               args[0].map(function (glyph) {
-                mc_width += (glyph.width ? glyph.width : glyph) * textMatrix[0];
+                mc_width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
               });
               break;
 
@@ -31381,12 +31387,15 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               continue;
 
             case _util.OPS.endMarkedContent:
-              positionByMCID[mcid] = {
-                x: mc_x,
-                y: mc_y,
-                width: mc_width,
-                height: mc_height
-              };
+              if (Number.isInteger(mcid)) {
+                positionByMCID[mcid] = {
+                  x: mc_x,
+                  y: mc_y,
+                  width: mc_width,
+                  height: mc_height
+                };
+              }
+
               mcid = null;
               continue;
 

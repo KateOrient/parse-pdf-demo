@@ -29,7 +29,7 @@ function onPageRenderSuccess(page) {
         document.body.appendChild(div);
 
         div = document.getElementById('div' + page.pageIndex);
-        _.map(positionData, (position) => {
+        _.map(positionData, (position, mcid) => {
             let child = document.createElement('div');
             child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
             child.style.left = position.x + 'px';
@@ -37,6 +37,7 @@ function onPageRenderSuccess(page) {
             child.style.width = position.width + 'px';
             child.style.border = '1px solid red';
             child.style.position = 'absolute';
+            child.id = mcid;
             div.appendChild(child);
         })
     });
