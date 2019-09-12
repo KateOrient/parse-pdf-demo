@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
 import testPdf from './test.pdf';
+import _ from 'lodash';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
@@ -11,7 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 let uploadInputRef;
 
-/*
+
 function drawOnPageRenderSuccess(page) {
     page.getOperatorList().then((data) => {
         let positionData = data.argsArray[data.argsArray.length - 1][0];
@@ -19,14 +20,17 @@ function drawOnPageRenderSuccess(page) {
 
         let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
         let rect = canvas.getBoundingClientRect();
+
         let div = document.createElement('div');
+        div.innerHTML = "";
         div.style.top = rect.y + 'px';
         div.style.left = rect.x + 'px';
         div.style.height = rect.height + 'px';
         div.style.width = rect.width + 'px';
         div.style.position = 'absolute';
         div.id = 'div' + page.pageIndex;
-        document.body.appendChild(div);
+        div.className = 'bbox-container';
+        document.getElementById('container').appendChild(div);
 
         div = document.getElementById('div' + page.pageIndex);
         _.map(positionData, (position, mcid) => {
@@ -35,14 +39,14 @@ function drawOnPageRenderSuccess(page) {
             child.style.left = position.x + 'px';
             child.style.height = position.height + 'px';
             child.style.width = position.width + 'px';
-            child.style.border = '1px solid red';
+            child.style.border = '2px solid red';
             child.style.position = 'absolute';
             child.id = mcid;
             div.appendChild(child);
         })
     });
 }
-*/
+
 
 function Pages({ numPages, onPageRenderSuccess }) {
     let pagesArray = [];
@@ -55,7 +59,7 @@ function Pages({ numPages, onPageRenderSuccess }) {
                   renderAnnotationLayer={true}
                   renderInteractiveForms={true}
                   renderTextLayer={true}
-                  onRenderSuccess={onPageRenderSuccess}
+                  onRenderSuccess={drawOnPageRenderSuccess}
                   customTextRenderer={({height,  width, transform, scale, page, str}) => {
                       /*
                       height: height of text
@@ -138,6 +142,8 @@ class App extends React.Component {
     }
 
     _onUploadEnd = (pdf) => {
+        document.getElementById('container').innerHTML = "";
+
         this.setState({
             numPages: null,
             pageNumber: 1,
@@ -177,6 +183,7 @@ class App extends React.Component {
                         </Document>
                     </div>
                 </article>
+                <div id='container'/>
             </div>
         );
     }
