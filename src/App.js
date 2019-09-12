@@ -11,7 +11,40 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 let uploadInputRef;
 
-function Pages({ numPages }) {
+/*
+function drawOnPageRenderSuccess(page) {
+    page.getOperatorList().then((data) => {
+        let positionData = data.argsArray[data.argsArray.length - 1][0];
+        console.log('Data:', positionData);
+
+        let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
+        let rect = canvas.getBoundingClientRect();
+        let div = document.createElement('div');
+        div.style.top = rect.y + 'px';
+        div.style.left = rect.x + 'px';
+        div.style.height = rect.height + 'px';
+        div.style.width = rect.width + 'px';
+        div.style.position = 'absolute';
+        div.id = 'div' + page.pageIndex;
+        document.body.appendChild(div);
+
+        div = document.getElementById('div' + page.pageIndex);
+        _.map(positionData, (position, mcid) => {
+            let child = document.createElement('div');
+            child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
+            child.style.left = position.x + 'px';
+            child.style.height = position.height + 'px';
+            child.style.width = position.width + 'px';
+            child.style.border = '1px solid red';
+            child.style.position = 'absolute';
+            child.id = mcid;
+            div.appendChild(child);
+        })
+    });
+}
+*/
+
+function Pages({ numPages, onPageRenderSuccess }) {
     let pagesArray = [];
 
     for (let i = 1; i <= numPages; i++) {
@@ -22,6 +55,7 @@ function Pages({ numPages }) {
                   renderAnnotationLayer={true}
                   renderInteractiveForms={true}
                   renderTextLayer={true}
+                  onRenderSuccess={onPageRenderSuccess}
                   customTextRenderer={({height,  width, transform, scale, page, str}) => {
                       /*
                       height: height of text
@@ -29,7 +63,7 @@ function Pages({ numPages }) {
                       transform: contain coordinates of text
                       scale: will be used for coords. conversing
                        */
-                      return (<mark>{str}</mark>);
+                      return str;
                   }}
             />
         );
@@ -46,25 +80,21 @@ class App extends React.Component {
             numPages: null,
             pageNumber: 1,
             pdf: testPdf,
-            title: testPdf.name
+            title: testPdf.name,
+            boundingBoxes: null,
+            renderedPages: 0
         };
+    }
+
+    componentDidUpdate() {
+        if (this.state.renderedPages === this.state.numPages) {
+            console.log('BBoxes', this.state.boundingBoxes);
+            this.setState({renderedPages: 0});
+        }
     }
 
     onDocumentLoadSuccess = (document) => {
         console.log(document);
-        document.getPage(1).then((page) => {
-            //console.log(page.objs.get("img_p0_1"));
-            // window.page = page;
-            // window.viewport = page.getViewport({scale});
-            // viewport.convertToPdfPoint(x, y)
-            // let canvas = $('canvas');
-            // let ctx = canvas.getContext('2d');
-            // ctx.strokeRect(x, y - height, width, height)
-            /*page.getOperatorList().then((data) => {
-                console.log('Data:');
-                console.log(data);
-            });*/
-        });
 
         document.getMetadata().then(({ info, metadata, contentDispositionFilename, }) => {
             let title = info.Title || this.state.pdf.name;
@@ -74,7 +104,19 @@ class App extends React.Component {
         });
         let {numPages} = document;
         this.setState({ numPages });
-    }
+    };
+
+    onPageRenderSuccess = (page) => {
+        page.getOperatorList().then(data => {
+            let boundingBoxes = data.argsArray[data.argsArray.length - 1][0];
+            this.setState({
+                boundingBoxes:
+                    this.state.boundingBoxes && this.state.renderedPages !== 0  ?
+                        {...this.state.boundingBoxes, ...boundingBoxes} : boundingBoxes,
+                renderedPages: this.state.renderedPages + 1
+            })
+        });
+    };
 
     uploadFile = (e) => {
         let file = e.target.files[0];
@@ -131,7 +173,7 @@ class App extends React.Component {
                                       cMapPacked: true,
                                   }}
                         >
-                            {Pages({ pageNumber, numPages })}
+                            {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
                         </Document>
                     </div>
                 </article>

@@ -81,6 +81,40 @@ class CatalogMain {
     return shadow(this, 'metadata', metadata);
   }
 
+  get structTreeRoot() {
+    const structTreeRoot = this.catDict.get('StructTreeRoot');
+    if (!isDict(structTreeRoot)) {
+      throw new FormatError('Invalid struct tree root dictionary.');
+    }
+    return shadow(this, 'structTreeRoot', structTreeRoot);
+  }
+
+  getTreeElement(el) {
+    if (el.has && el.has('K')) {
+      return {
+        [el.get('S').name]: this.getTreeElement(el.get('K'))
+      }
+    }
+    if (Array.isArray(el)) {
+      return el.map(subel => {
+        if (Number.isInteger(subel)) {
+          return subel;
+        } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
+          return this.getTreeElement(subel);
+        } else {
+          return this.getTreeElement(this.xref.fetch(subel));
+        }
+      })
+    }
+    if (Number.isInteger(el)) {
+      return el;
+    }
+  }
+
+  get structureTree() {
+    return shadow(this, 'structureTree', this.getTreeElement(this.structTreeRoot.get('K')));
+  }
+
   get toplevelPagesDict() {
     const pagesObj = this.catDict.get('Pages');
     if (!isDict(pagesObj)) {

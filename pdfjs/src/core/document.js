@@ -516,6 +516,10 @@ class PDFDocument {
     return shadow(this, 'numPages', num);
   }
 
+  get structureTree() {
+    return shadow(this, 'structureTree', this.catalog.structureTree);
+  }
+
   get documentInfo() {
     const DocumentInfoValidators = {
       Title: isString,
