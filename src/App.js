@@ -39,8 +39,8 @@ function drawOnPageRenderSuccess(page) {
             child.style.left = position.x + 'px';
             child.style.height = position.height + 'px';
             child.style.width = position.width + 'px';
-            child.style.border = '1px solid red';
             child.style.position = 'absolute';
+            child.className = 'bbox';
             child.id = mcid;
             div.appendChild(child);
         })

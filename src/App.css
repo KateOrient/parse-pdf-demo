@@ -57,3 +57,9 @@
     transform: rotate(360deg);
   }
 }
+.bbox {
+  border: none;
+}
+.bbox:hover {
+  border: 1px solid red;
+}
