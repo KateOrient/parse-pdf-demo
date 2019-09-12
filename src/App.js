@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
-import testPdf from './test.pdf';
+import testPdf from './test_2.pdf';
 import _ from 'lodash';
 
 //  Set pdf.js build
@@ -39,7 +39,7 @@ function drawOnPageRenderSuccess(page) {
             child.style.left = position.x + 'px';
             child.style.height = position.height + 'px';
             child.style.width = position.width + 'px';
-            child.style.border = '2px solid red';
+            child.style.border = '1px solid red';
             child.style.position = 'absolute';
             child.id = mcid;
             div.appendChild(child);
