@@ -2,8 +2,7 @@ import React from 'react';
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
-import testPdf from './test_2.pdf';
-import _ from 'lodash';
+import testPdf from './test.pdf';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
@@ -12,7 +11,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 let uploadInputRef;
 
-function onPageRenderSuccess(page) {
+/*
+function drawOnPageRenderSuccess(page) {
     page.getOperatorList().then((data) => {
         let positionData = data.argsArray[data.argsArray.length - 1][0];
         console.log('Data:', positionData);
@@ -42,8 +42,9 @@ function onPageRenderSuccess(page) {
         })
     });
 }
+*/
 
-function Pages({ numPages }) {
+function Pages({ numPages, onPageRenderSuccess }) {
     let pagesArray = [];
 
     for (let i = 1; i <= numPages; i++) {
@@ -79,8 +80,17 @@ class App extends React.Component {
             numPages: null,
             pageNumber: 1,
             pdf: testPdf,
-            title: testPdf.name
+            title: testPdf.name,
+            boundingBoxes: null,
+            renderedPages: 0
         };
+    }
+
+    componentDidUpdate() {
+        if (this.state.renderedPages === this.state.numPages) {
+            console.log('BBoxes', this.state.boundingBoxes);
+            this.setState({renderedPages: 0});
+        }
     }
 
     onDocumentLoadSuccess = (document) => {
@@ -94,7 +104,19 @@ class App extends React.Component {
         });
         let {numPages} = document;
         this.setState({ numPages });
-    }
+    };
+
+    onPageRenderSuccess = (page) => {
+        page.getOperatorList().then(data => {
+            let boundingBoxes = data.argsArray[data.argsArray.length - 1][0];
+            this.setState({
+                boundingBoxes:
+                    this.state.boundingBoxes && this.state.renderedPages !== 0  ?
+                        {...this.state.boundingBoxes, ...boundingBoxes} : boundingBoxes,
+                renderedPages: this.state.renderedPages + 1
+            })
+        });
+    };
 
     uploadFile = (e) => {
         let file = e.target.files[0];
@@ -151,7 +173,7 @@ class App extends React.Component {
                                       cMapPacked: true,
                                   }}
                         >
-                            {Pages({ pageNumber, numPages })}
+                            {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
                         </Document>
                     </div>
                 </article>
