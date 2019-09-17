@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '81f5835c';
+var pdfjsBuild = '395c450';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -418,7 +418,7 @@ var WorkerMessageHandler = {
       _loadDocument = _asyncToGenerator(
       /*#__PURE__*/
       _regenerator.default.mark(function _callee(recoveryMode) {
-        var _ref6, _ref7, numPages, fingerprint;
+        var _ref6, _ref7, numPages, fingerprint, structureTree;
 
         return _regenerator.default.wrap(function _callee$(_context) {
           while (1) {
@@ -446,19 +446,21 @@ var WorkerMessageHandler = {
 
               case 9:
                 _context.next = 11;
-                return Promise.all([pdfManager.ensureDoc('numPages'), pdfManager.ensureDoc('fingerprint')]);
+                return Promise.all([pdfManager.ensureDoc('numPages'), pdfManager.ensureDoc('fingerprint'), pdfManager.ensureDoc('structureTree')]);
 
               case 11:
                 _ref6 = _context.sent;
-                _ref7 = _slicedToArray(_ref6, 2);
+                _ref7 = _slicedToArray(_ref6, 3);
                 numPages = _ref7[0];
                 fingerprint = _ref7[1];
+                structureTree = _ref7[2];
                 return _context.abrupt("return", {
                   numPages: numPages,
-                  fingerprint: fingerprint
+                  fingerprint: fingerprint,
+                  structureTree: structureTree
                 });
 
-              case 16:
+              case 17:
               case "end":
                 return _context.stop();
             }
@@ -12963,6 +12965,11 @@ function () {
       return (0, _util.shadow)(this, 'numPages', num);
     }
   }, {
+    key: "structureTree",
+    get: function get() {
+      return (0, _util.shadow)(this, 'structureTree', this.catalog.structureTree);
+    }
+  }, {
     key: "documentInfo",
     get: function get() {
       var DocumentInfoValidators = {
@@ -13134,6 +13141,8 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -13164,6 +13173,31 @@ function () {
   }
 
   _createClass(CatalogMain, [{
+    key: "getTreeElement",
+    value: function getTreeElement(el) {
+      var _this = this;
+
+      if (el.has && el.has('K')) {
+        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K')));
+      }
+
+      if (Array.isArray(el)) {
+        return el.map(function (subel) {
+          if (Number.isInteger(subel)) {
+            return subel;
+          } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
+            return _this.getTreeElement(subel);
+          } else {
+            return _this.getTreeElement(_this.xref.fetch(subel));
+          }
+        });
+      }
+
+      if (Number.isInteger(el)) {
+        return el;
+      }
+    }
+  }, {
     key: "_readDocumentOutline",
     value: function _readDocumentOutline() {
       var obj = this.catDict.get('Outlines');
@@ -13453,7 +13487,7 @@ function () {
   }, {
     key: "cleanup",
     value: function cleanup() {
-      var _this = this;
+      var _this2 = this;
 
       this.pageKidsCountCache.clear();
       var promises = [];
@@ -13466,9 +13500,9 @@ function () {
           delete font.translated;
         }
 
-        _this.fontCache.clear();
+        _this2.fontCache.clear();
 
-        _this.builtInCMapCache.clear();
+        _this2.builtInCMapCache.clear();
       });
     }
   }, {
@@ -13709,6 +13743,22 @@ function () {
       }
 
       return (0, _util.shadow)(this, 'metadata', metadata);
+    }
+  }, {
+    key: "structTreeRoot",
+    get: function get() {
+      var structTreeRoot = this.catDict.get('StructTreeRoot');
+
+      if (!(0, _primitives.isDict)(structTreeRoot)) {
+        throw new _util.FormatError('Invalid struct tree root dictionary.');
+      }
+
+      return (0, _util.shadow)(this, 'structTreeRoot', structTreeRoot);
+    }
+  }, {
+    key: "structureTree",
+    get: function get() {
+      return (0, _util.shadow)(this, 'structureTree', this.getTreeElement(this.structTreeRoot.get('K')));
     }
   }, {
     key: "toplevelPagesDict",
@@ -15235,7 +15285,7 @@ var ObjectLoader = function () {
       return this.capability.promise;
     },
     _walk: function _walk(nodesToVisit) {
-      var _this2 = this;
+      var _this3 = this;
 
       var nodesToRevisit = [];
       var pendingRequests = [];
@@ -15294,11 +15344,11 @@ var ObjectLoader = function () {
             var node = nodesToRevisit[_i4];
 
             if ((0, _primitives.isRef)(node)) {
-              _this2.refSet.remove(node);
+              _this3.refSet.remove(node);
             }
           }
 
-          _this2._walk(nodesToRevisit);
+          _this3._walk(nodesToRevisit);
         }, this.capability.reject);
         return;
       }
@@ -15318,15 +15368,15 @@ function (_CatalogMain) {
   _inherits(Catalog, _CatalogMain);
 
   function Catalog(pdfManager, xref) {
-    var _this3;
+    var _this4;
 
     _classCallCheck(this, Catalog);
 
-    _this3 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
-    _this3.structure = _this3.xref.root.get('StructTreeRoot');
-    _this3.ClassMap = _this3._getClassMap();
-    _this3.RoleMap = _this3._getRoleMap();
-    return _this3;
+    _this4 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
+    _this4.structure = _this4.xref.root.get('StructTreeRoot');
+    _this4.ClassMap = _this4._getClassMap();
+    _this4.RoleMap = _this4._getRoleMap();
+    return _this4;
   }
 
   _createClass(Catalog, [{
@@ -15359,7 +15409,7 @@ function (_CatalogMain) {
   }, {
     key: "_convertDict",
     value: function _convertDict(dict) {
-      var _this4 = this;
+      var _this5 = this;
 
       var objectToReturn = {};
       var keysArray = dict.getKeys();
@@ -15367,7 +15417,7 @@ function (_CatalogMain) {
         var keyValue = dict.get(key);
 
         if ((0, _primitives.isDict)(keyValue)) {
-          objectToReturn[key] = _this4._convertDict(keyValue);
+          objectToReturn[key] = _this5._convertDict(keyValue);
         } else {
           objectToReturn[key] = keyValue;
         }
@@ -30696,7 +30746,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }).then(function (translated) {
         state.font = translated.font;
         translated.send(_this4.handler);
-        return translated.loadedName;
+        return translated;
       });
     },
     handleText: function handleText(chars, state) {
@@ -30742,9 +30792,9 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           case 'Font':
             promise = promise.then(function () {
-              return _this5.handleSetFont(resources, null, value[0], operatorList, task, stateManager.state).then(function (loadedName) {
-                operatorList.addDependency(loadedName);
-                gStateObj.push([key, [loadedName, value[1]]]);
+              return _this5.handleSetFont(resources, null, value[0], operatorList, task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                gStateObj.push([key, [translated.loadedName, value[1]]]);
               });
             });
             break;
@@ -31007,6 +31057,11 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      var positionByMCID = {};
+      var transformMatrix = [];
+      var fontMatrix = [];
+      var mc_x, mc_width, mc_y, mc_height;
+      var mcid = null;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31037,6 +31092,13 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           var fn = operation.fn;
 
           switch (fn | 0) {
+            case _util.OPS.transform:
+              mc_x = args[4];
+              mc_y = args[5];
+              mc_width = args[0];
+              mc_height = args[3];
+              break;
+
             case _util.OPS.paintXObject:
               var name = args[0].name;
 
@@ -31107,11 +31169,19 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setFont:
               var fontSize = args[1];
-              next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (loadedName) {
-                operatorList.addDependency(loadedName);
-                operatorList.addOp(_util.OPS.setFont, [loadedName, fontSize]);
+              next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (translated) {
+                operatorList.addDependency(translated.loadedName);
+                fontMatrix = translated.font.fontMatrix;
+                operatorList.addOp(_util.OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
+
+            case _util.OPS.setTextMatrix:
+              mc_x = args[4];
+              mc_y = args[5];
+              mc_height = args[0];
+              transformMatrix = _util.Util.transform(fontMatrix, args);
+              break;
 
             case _util.OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -31138,6 +31208,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
+              mc_width = 0;
+              args[0].map(function (glyph) {
+                mc_width += glyph.width * transformMatrix[0];
+              });
               break;
 
             case _util.OPS.showSpacedText:
@@ -31158,6 +31232,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
               args[0] = combinedGlyphs;
               fn = _util.OPS.showText;
+              mc_width = 0;
+              args[0].map(function (glyph) {
+                mc_width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
+              });
               break;
 
             case _util.OPS.nextLineShowText:
@@ -31305,7 +31383,22 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.markPointProps:
             case _util.OPS.beginMarkedContent:
             case _util.OPS.beginMarkedContentProps:
+              mcid = args[1].get('MCID');
+              continue;
+
             case _util.OPS.endMarkedContent:
+              if (Number.isInteger(mcid)) {
+                positionByMCID[mcid] = {
+                  x: mc_x,
+                  y: mc_y,
+                  width: mc_width,
+                  height: mc_height
+                };
+              }
+
+              mcid = null;
+              continue;
+
             case _util.OPS.beginCompat:
             case _util.OPS.endCompat:
               continue;
@@ -31335,6 +31428,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
 
         closePendingRestoreOPS();
+        operatorList.addOp(_util.OPS.save, [positionByMCID]);
         resolve();
       }).catch(function (reason) {
         if (_this7.options.ignoreErrors) {
