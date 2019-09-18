@@ -590,9 +590,9 @@ class PDFDocument {
       }
     }
 
-    docInfo.ClassMap = this.catalog.ClassMap;
-    docInfo.RoleMap = this.catalog.RoleMap;
-    docInfo.Tree = this.catalog.Tree;
+    docInfo.ClassMap = this.catalog.ClassMap || {};
+    docInfo.RoleMap = this.catalog.RoleMap || {};
+    docInfo.Tree = this.catalog.Tree || {};
     return shadow(this, 'documentInfo', docInfo);
   }
 

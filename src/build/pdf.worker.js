@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'ac77d8a';
+var pdfjsBuild = 'f4364d0';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13056,9 +13056,9 @@ function () {
         }
       }
 
-      docInfo.ClassMap = this.catalog.ClassMap;
-      docInfo.RoleMap = this.catalog.RoleMap;
-      docInfo.Tree = this.catalog.Tree;
+      docInfo.ClassMap = this.catalog.ClassMap || {};
+      docInfo.RoleMap = this.catalog.RoleMap || {};
+      docInfo.Tree = this.catalog.Tree || {};
       return (0, _util.shadow)(this, 'documentInfo', docInfo);
     }
   }, {
@@ -15378,8 +15378,12 @@ function (_CatalogMain) {
 
     _this4 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
     _this4.structure = _this4.xref.root.get('StructTreeRoot');
-    _this4.ClassMap = _this4._getClassMap();
-    _this4.RoleMap = _this4._getRoleMap();
+
+    if (_this4.structure) {
+      _this4.ClassMap = _this4._getClassMap();
+      _this4.RoleMap = _this4._getRoleMap();
+    }
+
     return _this4;
   }
 
@@ -15397,17 +15401,25 @@ function (_CatalogMain) {
   }, {
     key: "_getClassMap",
     value: function _getClassMap() {
-      var cmObj;
+      var cmObj = {};
       var classMap = this.structure.get('ClassMap');
-      cmObj = this._convertDict(classMap);
+
+      if (classMap) {
+        cmObj = this._convertDict(classMap);
+      }
+
       return cmObj;
     }
   }, {
     key: "_getRoleMap",
     value: function _getRoleMap() {
-      var rmObj;
+      var rmObj = {};
       var roleMap = this.structure.get('RoleMap');
-      rmObj = this._convertDict(roleMap);
+
+      if (roleMap) {
+        rmObj = this._convertDict(roleMap);
+      }
+
       return rmObj;
     }
   }, {

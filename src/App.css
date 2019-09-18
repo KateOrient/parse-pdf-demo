@@ -63,3 +63,9 @@
 .bbox:hover {
   border: 1px solid red;
 }
+
+
+.error-msg {
+  color: red;
+  font-weight: bold;
+}

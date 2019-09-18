@@ -86,7 +86,8 @@ class App extends React.Component {
             pdf: testPdf,
             title: testPdf.name,
             boundingBoxes: null,
-            renderedPages: 0
+            renderedPages: 0,
+            error: null
         };
     }
 
@@ -155,6 +156,12 @@ class App extends React.Component {
         uploadInputRef = node;
     }
 
+    onError = (e) => {
+        this.setState({
+           error: e.message
+        });
+    }
+
     render() {
         const { pageNumber, numPages, title } = this.state;
 
@@ -178,6 +185,8 @@ class App extends React.Component {
                                       cMapUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/cmaps/`,
                                       cMapPacked: true,
                                   }}
+                                  onLoadError={this.onError}
+                                  error={<div className="error-msg">{this.state.error}</div> }
                         >
                             {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
                         </Document>

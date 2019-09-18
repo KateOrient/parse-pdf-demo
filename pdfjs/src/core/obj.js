@@ -2026,10 +2026,10 @@ class Catalog extends CatalogMain {
 
     this.structure = this.xref.root.get('StructTreeRoot');
 
-    this.ClassMap = this._getClassMap();
-    this.RoleMap = this._getRoleMap();
-    //console.log(this._getTree());
-    //this.Tree = this._getTree();
+    if (this.structure) {
+      this.ClassMap = this._getClassMap();
+      this.RoleMap = this._getRoleMap();
+    }
   }
 
   getStructureData() {
@@ -2043,28 +2043,23 @@ class Catalog extends CatalogMain {
   }
 
   _getClassMap() {
-    let cmObj;
+    let cmObj = {};
     let classMap = this.structure.get('ClassMap');
 
-    cmObj = this._convertDict(classMap);
+    if (classMap) {
+      cmObj = this._convertDict(classMap);
+    }
 
     return cmObj;
   }
 
-  /*_getTree() {
-    let tObj;
-    let tMap = this.structure.get('ParentTree');
-
-    tObj = this._convertDict(tMap);
-
-    return tObj;
-  }*/
-
   _getRoleMap() {
-    let rmObj;
+    let rmObj = {};
     let roleMap = this.structure.get('RoleMap');
 
-    rmObj = this._convertDict(roleMap);
+    if (roleMap) {
+      rmObj = this._convertDict(roleMap);
+    }
 
     return rmObj;
   }
