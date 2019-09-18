@@ -57,11 +57,28 @@
     transform: rotate(360deg);
   }
 }
+
+.bbox-container {
+  position: absolute;
+}
+
 .bbox {
   border: none;
+  position: absolute;
 }
 .bbox:hover {
   border: 1px solid red;
+}
+
+.bbox._hovered::before {
+  content: attr(data-tag-name);
+  background: #fff;
+  color: red;
+  border: 1px dashed red;
+  position: absolute;
+  padding: 3px 5px;
+  top: -28px;
+  left: 5px;
 }
 
 
