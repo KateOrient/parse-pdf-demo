@@ -204,6 +204,7 @@ class Page {
     });
 
     const dataPromises = Promise.all([contentStreamPromise, resourcesPromise]);
+    let boundingBoxes;
     const pageListPromise = dataPromises.then(([contentStream]) => {
       const opList = new OperatorList(intent, handler, this.pageIndex);
 
@@ -218,7 +219,8 @@ class Page {
         task,
         resources: this.resources,
         operatorList: opList,
-      }).then(function() {
+      }).then(function(boundingBoxesByMCID) {
+        boundingBoxes = boundingBoxesByMCID;
         return opList;
       });
     });
@@ -228,6 +230,7 @@ class Page {
     return Promise.all([pageListPromise, this._parsedAnnotations]).then(
         function([pageOpList, annotations]) {
       if (annotations.length === 0) {
+        pageOpList.addOp(OPS.save, boundingBoxes);
         pageOpList.flush(true);
         return pageOpList;
       }
@@ -248,6 +251,7 @@ class Page {
           pageOpList.addOpList(opList);
         }
         pageOpList.addOp(OPS.endAnnotations, []);
+        pageOpList.addOp(OPS.save, boundingBoxes);
         pageOpList.flush(true);
         return pageOpList;
       });

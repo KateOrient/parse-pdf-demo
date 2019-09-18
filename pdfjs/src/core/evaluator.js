@@ -1237,8 +1237,11 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPoint:
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
+              continue;
             case OPS.beginMarkedContentProps:
-              mcid = args[1].get('MCID');
+              if (args[1].get) {
+                mcid = args[1].get('MCID');
+              }
               continue;
             case OPS.endMarkedContent:
               if (Number.isInteger(mcid)) {
@@ -1283,8 +1286,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         // Add extra data about marked content as last element of operator list
         // with corresponding function 'save', because it won't affect on
         // the process of rendering
-        operatorList.addOp(OPS.save, [positionByMCID]);
-        resolve();
+        resolve(positionByMCID);
       }).catch((reason) => {
         if (this.options.ignoreErrors) {
           // Error(s) in the OperatorList -- sending unsupported feature

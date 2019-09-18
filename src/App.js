@@ -15,7 +15,7 @@ let uploadInputRef;
 
 function drawOnPageRenderSuccess(page) {
     page.getOperatorList().then((data) => {
-        let positionData = data.argsArray[data.argsArray.length - 1][0];
+        let positionData = data.argsArray[data.argsArray.length - 1];
         console.log('Data:', positionData);
 
         let canvas = document.getElementsByTagName('canvas')[page.pageIndex];

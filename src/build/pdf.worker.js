@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '395c450';
+var pdfjsBuild = 'ac77d8a';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -12434,6 +12434,7 @@ function () {
         pdfFunctionFactory: this.pdfFunctionFactory
       });
       var dataPromises = Promise.all([contentStreamPromise, resourcesPromise]);
+      var boundingBoxes;
       var pageListPromise = dataPromises.then(function (_ref3) {
         var _ref4 = _slicedToArray(_ref3, 1),
             contentStream = _ref4[0];
@@ -12449,7 +12450,8 @@ function () {
           task: task,
           resources: _this2.resources,
           operatorList: opList
-        }).then(function () {
+        }).then(function (boundingBoxesByMCID) {
+          boundingBoxes = boundingBoxesByMCID;
           return opList;
         });
       });
@@ -12459,6 +12461,7 @@ function () {
             annotations = _ref6[1];
 
         if (annotations.length === 0) {
+          pageOpList.addOp(_util.OPS.save, boundingBoxes);
           pageOpList.flush(true);
           return pageOpList;
         }
@@ -12518,6 +12521,7 @@ function () {
           }
 
           pageOpList.addOp(_util.OPS.endAnnotations, []);
+          pageOpList.addOp(_util.OPS.save, boundingBoxes);
           pageOpList.flush(true);
           return pageOpList;
         });
@@ -31382,8 +31386,13 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.markPoint:
             case _util.OPS.markPointProps:
             case _util.OPS.beginMarkedContent:
+              continue;
+
             case _util.OPS.beginMarkedContentProps:
-              mcid = args[1].get('MCID');
+              if (args[1].get) {
+                mcid = args[1].get('MCID');
+              }
+
               continue;
 
             case _util.OPS.endMarkedContent:
@@ -31428,8 +31437,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
 
         closePendingRestoreOPS();
-        operatorList.addOp(_util.OPS.save, [positionByMCID]);
-        resolve();
+        resolve(positionByMCID);
       }).catch(function (reason) {
         if (_this7.options.ignoreErrors) {
           _this7.handler.send('UnsupportedFeature', {
