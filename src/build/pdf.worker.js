@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f4364d0';
+var pdfjsBuild = '1ac69ce';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -30162,6 +30162,14 @@ var _image = __w_pdfjs_require__(188);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
@@ -31076,8 +31084,15 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       var positionByMCID = {};
       var transformMatrix = [];
       var fontMatrix = [];
-      var mc_x, mc_width, mc_y, mc_height;
+      var textMatrix = [];
+      var mc_x = null,
+          mc_width = null,
+          mc_y = null,
+          mc_height = null;
+      var width;
+      var moveText;
       var mcid = null;
+      var mc_font_size = null;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31185,6 +31200,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setFont:
               var fontSize = args[1];
+              mc_font_size = args[1];
               next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (translated) {
                 operatorList.addDependency(translated.loadedName);
                 fontMatrix = translated.font.fontMatrix;
@@ -31193,10 +31209,39 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               return;
 
             case _util.OPS.setTextMatrix:
-              mc_x = args[4];
-              mc_y = args[5];
-              mc_height = args[0];
-              transformMatrix = _util.Util.transform(fontMatrix, args);
+              var matrix = _toConsumableArray(args);
+
+              if (matrix[0] === 1) {
+                matrix[0] = mc_font_size;
+              }
+
+              if (matrix[3] === 1) {
+                matrix[3] = mc_font_size;
+              }
+
+              textMatrix = matrix;
+
+              if (!mc_x || mc_x > matrix[4]) {
+                mc_x = matrix[4];
+              }
+
+              var height = void 0;
+
+              if (mc_y && mc_height) {
+                height = Math.max(mc_y + mc_height, matrix[5] + matrix[0]) - Math.min(mc_y, matrix[5]);
+              } else {
+                height = matrix[0];
+              }
+
+              if (height > mc_height) {
+                mc_height = height;
+              }
+
+              if (!mc_y || mc_y > matrix[5]) {
+                mc_y = matrix[5];
+              }
+
+              transformMatrix = _util.Util.transform(fontMatrix, matrix);
               break;
 
             case _util.OPS.endInlineImage:
@@ -31224,10 +31269,15 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
-              mc_width = 0;
+              width = 0;
               args[0].map(function (glyph) {
-                mc_width += glyph.width * transformMatrix[0];
+                width += glyph.width * transformMatrix[0];
               });
+
+              if (width > mc_width) {
+                mc_width = width;
+              }
+
               break;
 
             case _util.OPS.showSpacedText:
@@ -31248,10 +31298,37 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
               args[0] = combinedGlyphs;
               fn = _util.OPS.showText;
-              mc_width = 0;
+              width = 0;
               args[0].map(function (glyph) {
-                mc_width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
+                width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
               });
+
+              if (width > mc_width) {
+                mc_width = width;
+              }
+
+              break;
+
+            case _util.OPS.moveText:
+              moveText = args;
+
+              if (mc_x && mc_y && mc_height && mc_width) {
+                if (args[0] > 0 && mc_width < args[0] * textMatrix[0]) {
+                  mc_width += args[0] * textMatrix[0];
+                  mc_x += args[0] * textMatrix[0];
+                } else if (args[0] < 0) {
+                  mc_x += args[0] * textMatrix[0];
+                  mc_width += -args[0] * textMatrix[0];
+                }
+
+                if (args[1] > 0 && mc_height < args[1] * textMatrix[3]) {
+                  mc_height += args[1] * textMatrix[3];
+                } else if (args[1] < 0) {
+                  mc_y += args[1] * textMatrix[3];
+                  mc_height += -args[1] * textMatrix[3];
+                }
+              }
+
               break;
 
             case _util.OPS.nextLineShowText:
@@ -31417,6 +31494,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 };
               }
 
+              mc_x = mc_y = mc_width = mc_height = null;
               mcid = null;
               continue;
 

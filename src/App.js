@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
-import testPdf from './test_2.pdf';
+import testPdf from './demo_tags.pdf';
 import _ from 'lodash';
 
 //  Set pdf.js build
@@ -16,7 +16,7 @@ let uploadInputRef;
 function drawOnPageRenderSuccess(page) {
     page.getOperatorList().then((data) => {
         let positionData = data.argsArray[data.argsArray.length - 1];
-        console.log('Data:', positionData);
+        console.log('Data:', page.pageIndex, positionData);
 
         let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
         let rect = canvas.getBoundingClientRect();
@@ -42,6 +42,7 @@ function drawOnPageRenderSuccess(page) {
             child.style.position = 'absolute';
             child.className = 'bbox';
             child.id = mcid;
+            child.title = mcid;
             div.appendChild(child);
         })
     });
