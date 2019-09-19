@@ -57,6 +57,7 @@ class App extends React.Component {
             roleMap: {},
             classMap: {},
             activeTagName: null,
+            tagPath: null,
         };
     }
 
@@ -131,7 +132,7 @@ class App extends React.Component {
 
     onBboxOver = (e) => {
         let mcid = parseInt(e.target.getAttribute('data-mcid'));
-        let { name, relatives } = this.getTagName(mcid);
+        let { name, relatives, path } = this.getTagName(mcid);
         let bboxTagname = e.target.getAttribute('data-tag-name');
         let tagRoleMapPath = '';
         if (!bboxTagname) {
@@ -150,6 +151,7 @@ class App extends React.Component {
 
         this.setState({
             activeTagName: `${name} ${tagRoleMapPath}`,
+            tagPath: path.join(' -> '),
         });
     }
 
@@ -160,13 +162,16 @@ class App extends React.Component {
 
         this.setState({
             activeTagName: '',
+            tagPath: '',
         });
     }
 
     getTagName(mcid, tagNode = this.state.structureTree) {
         let node = '';
         let relatives = [];
+        let path = [];
         Object.keys(tagNode).forEach((nodeName) => {
+            path = [nodeName];
             if (tagNode[nodeName] === mcid) {
                 node = nodeName;
             } else if (tagNode[nodeName] instanceof Array) {
@@ -183,19 +188,22 @@ class App extends React.Component {
                     if (node) {
                         node = this.getTagName(mcid, node);
                         relatives = node.relatives;
+                        path = [...path, ...node.path];
                         node = node.name;
                     }
                 }
             } else if (tagNode[nodeName] instanceof Object) {
                 node = this.getTagName(mcid, tagNode[nodeName]);
                 relatives = node.relatives;
+                path = [...path, ...node.path];
                 node = node.name;
             }
         });
 
         return {
             name: node,
-            relatives
+            relatives,
+            path
         };
     }
 
@@ -298,6 +306,9 @@ class App extends React.Component {
                 <div id="tagInfo">
                     <div>
                         <span className="tag-info-title">Tag name: </span>{this.state.activeTagName}
+                    </div>
+                    <div>
+                        <span className="tag-info-title">Tree path: </span>{this.state.tagPath}
                     </div>
                 </div>
             </div>
