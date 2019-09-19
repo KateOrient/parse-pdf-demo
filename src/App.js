@@ -2,7 +2,8 @@ import React from 'react';
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import './App.css';
-import testPdf from './test.pdf';
+import testPdf from './demo_tags.pdf';
+import _ from 'lodash';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
@@ -10,39 +11,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 
 let uploadInputRef;
-
-/*
-function drawOnPageRenderSuccess(page) {
-    page.getOperatorList().then((data) => {
-        let positionData = data.argsArray[data.argsArray.length - 1][0];
-        console.log('Data:', positionData);
-
-        let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
-        let rect = canvas.getBoundingClientRect();
-        let div = document.createElement('div');
-        div.style.top = rect.y + 'px';
-        div.style.left = rect.x + 'px';
-        div.style.height = rect.height + 'px';
-        div.style.width = rect.width + 'px';
-        div.style.position = 'absolute';
-        div.id = 'div' + page.pageIndex;
-        document.body.appendChild(div);
-
-        div = document.getElementById('div' + page.pageIndex);
-        _.map(positionData, (position, mcid) => {
-            let child = document.createElement('div');
-            child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
-            child.style.left = position.x + 'px';
-            child.style.height = position.height + 'px';
-            child.style.width = position.width + 'px';
-            child.style.border = '1px solid red';
-            child.style.position = 'absolute';
-            child.id = mcid;
-            div.appendChild(child);
-        })
-    });
-}
-*/
+let containerRef;
 
 function Pages({ numPages, onPageRenderSuccess }) {
     let pagesArray = [];
@@ -82,7 +51,12 @@ class App extends React.Component {
             pdf: testPdf,
             title: testPdf.name,
             boundingBoxes: null,
-            renderedPages: 0
+            renderedPages: 0,
+            error: null,
+            structureTree: {},
+            roleMap: {},
+            classMap: {},
+            activeTagName: null,
         };
     }
 
@@ -95,11 +69,15 @@ class App extends React.Component {
 
     onDocumentLoadSuccess = (document) => {
         console.log(document);
-
+        let structureTree = document._pdfInfo.structureTree || {};
         document.getMetadata().then(({ info, metadata, contentDispositionFilename, }) => {
-            let title = info.Title || this.state.pdf.name;
+            let { RoleMap, ClassMap, Title } = info;
+            let title = Title || this.state.pdf.name;
             this.setState({
                 title,
+                structureTree,
+                roleMap: RoleMap || {},
+                classMap: ClassMap || {},
             })
         });
         let {numPages} = document;
@@ -107,7 +85,7 @@ class App extends React.Component {
     };
 
     onPageRenderSuccess = (page) => {
-        page.getOperatorList().then(data => {
+        /*page.getOperatorList().then(data => {
             let boundingBoxes = data.argsArray[data.argsArray.length - 1][0];
             this.setState({
                 boundingBoxes:
@@ -115,8 +93,133 @@ class App extends React.Component {
                         {...this.state.boundingBoxes, ...boundingBoxes} : boundingBoxes,
                 renderedPages: this.state.renderedPages + 1
             })
+        });*/
+
+        page.getOperatorList().then((data) => {
+            let positionData = data.argsArray[data.argsArray.length - 1];
+            console.log('Data:', positionData);
+
+            let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
+            let rect = canvas.getBoundingClientRect();
+
+            let div = document.createElement('div');
+            div.innerHTML = "";
+            div.style.top = rect.y + 'px';
+            div.style.left = rect.x + 'px';
+            div.style.height = rect.height + 'px';
+            div.style.width = rect.width + 'px';
+            div.style.position = 'absolute';
+            div.id = 'div' + page.pageIndex;
+            containerRef.appendChild(div);
+
+            div = document.getElementById('div' + page.pageIndex);
+            _.map(positionData, (position, mcid) => {
+                let child = document.createElement('div');
+                child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
+                child.style.left = position.x + 'px';
+                child.style.height = position.height + 'px';
+                child.style.width = position.width + 'px';
+                child.className = 'bbox';
+                child.setAttribute('data-mcid', mcid);
+            	child.title = mcid;
+                child.onmouseover = this.onBboxOver;
+                child.onmouseout  = this.onBboxOut;
+                div.appendChild(child);
+            })
         });
-    };
+    }
+
+    onBboxOver = (e) => {
+        let mcid = parseInt(e.target.getAttribute('data-mcid'));
+        let { name, relatives } = this.getTagName(mcid);
+        let bboxTagname = e.target.getAttribute('data-tag-name');
+        let tagRoleMapPath = '';
+        if (!bboxTagname) {
+            e.target.setAttribute('data-tag-name', name);
+        }
+
+        relatives.forEach((elementMcid) => {
+            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
+        });
+
+        e.target.classList.add('_hovered');
+
+        if (this.state.roleMap[name]) {
+            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
+        }
+
+        this.setState({
+            activeTagName: `${name} ${tagRoleMapPath}`,
+        });
+    }
+
+    onBboxOut = (e) => {
+        [...document.querySelectorAll('._hovered')].forEach((el) => {
+            el.classList.remove('_hovered');
+        });
+
+        this.setState({
+            activeTagName: '',
+        });
+    }
+
+    getTagName(mcid, tagNode = this.state.structureTree) {
+        let node = '';
+        let relatives = [];
+        Object.keys(tagNode).forEach((nodeName) => {
+            if (tagNode[nodeName] === mcid) {
+                node = nodeName;
+            } else if (tagNode[nodeName] instanceof Array) {
+                if (tagNode[nodeName].includes(mcid)) {
+                    node = nodeName;
+                    relatives = this.getRelatives(tagNode[nodeName]);
+                } else {
+                    node = tagNode[nodeName].filter((nodeFromArray) => {
+                        if (!nodeFromArray) {
+                            return false;
+                        }
+                        return !!this.getTagName(mcid, nodeFromArray).name;
+                    })[0];
+                    if (node) {
+                        node = this.getTagName(mcid, node);
+                        relatives = node.relatives;
+                        node = node.name;
+                    }
+                }
+            } else if (tagNode[nodeName] instanceof Object) {
+                node = this.getTagName(mcid, tagNode[nodeName]);
+                relatives = node.relatives;
+                node = node.name;
+            }
+        });
+
+        return {
+            name: node,
+            relatives
+        };
+    }
+
+    getRelatives(arrayOfRelatives) {
+        let relatives = [];
+        arrayOfRelatives.forEach((relative) => {
+            if (!relative) return;
+            if (typeof relative === 'number') {
+                relatives.push(relative);
+            } else if (relative instanceof Array && relative.length) {
+                relatives = [
+                    ...relatives,
+                    ...this.getRelatives(relative)
+                ];
+            } else if (relative instanceof Object) {
+                relatives = [
+                    ...relatives,
+                    ...this.getRelatives(Object.entries(relative))
+                ];
+            }
+        });
+
+        return relatives;
+    }
 
     uploadFile = (e) => {
         let file = e.target.files[0];
@@ -138,6 +241,8 @@ class App extends React.Component {
     }
 
     _onUploadEnd = (pdf) => {
+        document.getElementById('container').innerHTML = "";
+
         this.setState({
             numPages: null,
             pageNumber: 1,
@@ -147,6 +252,16 @@ class App extends React.Component {
 
     _setRef(node) {
         uploadInputRef = node;
+    }
+
+    setContainerRef(node) {
+        containerRef = node;
+    }
+
+    onError = (e) => {
+        this.setState({
+           error: e.message
+        });
     }
 
     render() {
@@ -172,11 +287,19 @@ class App extends React.Component {
                                       cMapUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/cmaps/`,
                                       cMapPacked: true,
                                   }}
+                                  onLoadError={this.onError}
+                                  error={<div className="error-msg">{this.state.error}</div> }
                         >
                             {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
                         </Document>
                     </div>
                 </article>
+                <div id="container" ref={this.setContainerRef}/>
+                <div id="tagInfo">
+                    <div>
+                        <span className="tag-info-title">Tag name: </span>{this.state.activeTagName}
+                    </div>
+                </div>
             </div>
         );
     }

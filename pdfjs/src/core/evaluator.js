@@ -945,8 +945,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var positionByMCID = {};
       var transformMatrix = [];
       var fontMatrix = [];
-      var mc_x, mc_width, mc_y, mc_height;
+      var textMatrix = [];
+      var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
+      var width;
+      var moveText;
       var mcid = null;
+      var mc_font_size = null;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1048,6 +1052,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               return;
             case OPS.setFont:
               var fontSize = args[1];
+              mc_font_size = args[1];
               // eagerly collect all fonts
               next(self.handleSetFont(resources, args, null, operatorList,
                 task, stateManager.state).then(function (translated) {
@@ -1057,10 +1062,31 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }));
               return;
             case OPS.setTextMatrix:
-              mc_x = args[4];
-              mc_y = args[5];
-              mc_height = args[0];
-              transformMatrix = Util.transform(fontMatrix, args);
+              let matrix = [...args];
+              if (matrix[0] === 1) {
+                matrix[0] = mc_font_size;
+              }
+              if (matrix[3] === 1) {
+                matrix[3] = mc_font_size;
+              }
+              textMatrix = matrix;
+              if (!mc_x || mc_x > matrix[4]) {
+                mc_x = matrix[4];
+              }
+              let height;
+              if (mc_y && mc_height) {
+                height = Math.max(mc_y + mc_height, matrix[5] + matrix[0]) - Math.min(mc_y, matrix[5]);
+              } else {
+                height = matrix[0];
+              }
+              if (height > mc_height) {
+                mc_height = height;
+              }
+              if (!mc_y || mc_y > matrix[5]) {
+                mc_y = matrix[5];
+              }
+
+              transformMatrix = Util.transform(fontMatrix, matrix);
               break;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -1083,10 +1109,13 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               return;
             case OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
-              mc_width = 0;
+              width = 0;
               args[0].map(glyph => {
-                mc_width += glyph.width * transformMatrix[0]
+                width += glyph.width * transformMatrix[0]
               });
+              if (width > mc_width) {
+                mc_width = width;
+              }
               break;
             case OPS.showSpacedText:
               var arr = args[0];
@@ -1104,10 +1133,32 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
               args[0] = combinedGlyphs;
               fn = OPS.showText;
-              mc_width = 0;
+              width = 0;
               args[0].map(glyph => {
-                mc_width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
+                width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
               });
+              if (width > mc_width) {
+                mc_width = width;
+              }
+              break;
+            case OPS.moveText:
+              moveText = args;
+              if (mc_x && mc_y && mc_height && mc_width) {
+                if (args[0] > 0 && mc_width < args[0] * textMatrix[0]) {
+                  mc_width += args[0] * textMatrix[0];
+                  mc_x += args[0] * textMatrix[0];
+                } else if (args[0] < 0) {
+                  mc_x += args[0] * textMatrix[0];
+                  mc_width += -args[0] * textMatrix[0]
+                }
+
+                if (args[1] > 0 && mc_height < args[1] * textMatrix[3]) {
+                  mc_height += args[1] * textMatrix[3];
+                } else if (args[1] < 0) {
+                  mc_y += args[1] * textMatrix[3];
+                  mc_height += -args[1] * textMatrix[3];
+                }
+              }
               break;
             case OPS.nextLineShowText:
               operatorList.addOp(OPS.nextLine);
@@ -1237,13 +1288,17 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPoint:
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
+              continue;
             case OPS.beginMarkedContentProps:
-              mcid = args[1].get('MCID');
+              if (args[1].get) {
+                mcid = args[1].get('MCID');
+              }
               continue;
             case OPS.endMarkedContent:
               if (Number.isInteger(mcid)) {
                 positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
               }
+              mc_x = mc_y = mc_width = mc_height = null;
               mcid = null;
               continue;
             case OPS.beginCompat:
@@ -1283,8 +1338,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         // Add extra data about marked content as last element of operator list
         // with corresponding function 'save', because it won't affect on
         // the process of rendering
-        operatorList.addOp(OPS.save, [positionByMCID]);
-        resolve();
+        resolve(positionByMCID);
       }).catch((reason) => {
         if (this.options.ignoreErrors) {
           // Error(s) in the OperatorList -- sending unsupported feature
@@ -1957,8 +2011,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           // According to table 114 if the encoding is a named encoding it must be
           // one of these predefined encodings.
           if ((baseEncodingName !== 'MacRomanEncoding' &&
-            baseEncodingName !== 'MacExpertEncoding' &&
-            baseEncodingName !== 'WinAnsiEncoding')) {
+              baseEncodingName !== 'MacExpertEncoding' &&
+              baseEncodingName !== 'WinAnsiEncoding')) {
             baseEncodingName = null;
           }
         }
@@ -2118,13 +2172,13 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       // descendant CIDFont uses the Adobe-GB1, Adobe-CNS1, Adobe-Japan1, or
       // Adobe-Korea1 character collection:
       if (properties.composite && (
-        (properties.cMap.builtInCMap &&
-          !(properties.cMap instanceof IdentityCMap)) ||
-        (properties.cidSystemInfo.registry === 'Adobe' &&
-          (properties.cidSystemInfo.ordering === 'GB1' ||
-            properties.cidSystemInfo.ordering === 'CNS1' ||
-            properties.cidSystemInfo.ordering === 'Japan1' ||
-            properties.cidSystemInfo.ordering === 'Korea1')))) {
+          (properties.cMap.builtInCMap &&
+            !(properties.cMap instanceof IdentityCMap)) ||
+          (properties.cidSystemInfo.registry === 'Adobe' &&
+            (properties.cidSystemInfo.ordering === 'GB1' ||
+              properties.cidSystemInfo.ordering === 'CNS1' ||
+              properties.cidSystemInfo.ordering === 'Japan1' ||
+              properties.cidSystemInfo.ordering === 'Korea1')))) {
         // Then:
         // a) Map the character code to a character identifier (CID) according
         // to the font’s CMap.

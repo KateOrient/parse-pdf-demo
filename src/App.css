@@ -57,3 +57,44 @@
     transform: rotate(360deg);
   }
 }
+
+.bbox-container {
+  position: absolute;
+}
+
+.bbox {
+  border: none;
+  position: absolute;
+}
+.bbox._hovered {
+  border: 1px solid red;
+}
+
+/*.bbox._hovered:hover::before {
+  content: attr(data-tag-name);
+  background: #fff;
+  color: red;
+  border: 1px dashed red;
+  position: absolute;
+  padding: 3px 5px;
+  top: -28px;
+  left: 5px;
+}*/
+
+
+.error-msg {
+  color: red;
+  font-weight: bold;
+}
+
+#tagInfo {
+  position: fixed;
+  top: 50px;
+  left: 50px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tag-info-title {
+  font-weight: bold;
+}
