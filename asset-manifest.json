@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/parse-pdf-demo/static/css/main.474cd322.chunk.css",
-    "main.js": "/parse-pdf-demo/static/js/main.576aca57.chunk.js",
-    "main.js.map": "/parse-pdf-demo/static/js/main.576aca57.chunk.js.map",
+    "main.css": "/parse-pdf-demo/static/css/main.307b9341.chunk.css",
+    "main.js": "/parse-pdf-demo/static/js/main.2807ccaa.chunk.js",
+    "main.js.map": "/parse-pdf-demo/static/js/main.2807ccaa.chunk.js.map",
     "runtime~main.js": "/parse-pdf-demo/static/js/runtime~main.8a3ff88d.js",
     "runtime~main.js.map": "/parse-pdf-demo/static/js/runtime~main.8a3ff88d.js.map",
     "static/css/2.c83c8d54.chunk.css": "/parse-pdf-demo/static/css/2.c83c8d54.chunk.css",
-    "static/js/2.d43cb775.chunk.js": "/parse-pdf-demo/static/js/2.d43cb775.chunk.js",
-    "static/js/2.d43cb775.chunk.js.map": "/parse-pdf-demo/static/js/2.d43cb775.chunk.js.map",
+    "static/js/2.a8fbe6df.chunk.js": "/parse-pdf-demo/static/js/2.a8fbe6df.chunk.js",
+    "static/js/2.a8fbe6df.chunk.js.map": "/parse-pdf-demo/static/js/2.a8fbe6df.chunk.js.map",
     "index.html": "/parse-pdf-demo/index.html",
     "pdf.worker.js": "/parse-pdf-demo/pdf.worker.js",
-    "precache-manifest.24c56cd1523b89af3a845d45bd5daf13.js": "/parse-pdf-demo/precache-manifest.24c56cd1523b89af3a845d45bd5daf13.js",
+    "precache-manifest.063e857b0967547642d4da228e5cfab6.js": "/parse-pdf-demo/precache-manifest.063e857b0967547642d4da228e5cfab6.js",
     "service-worker.js": "/parse-pdf-demo/service-worker.js",
     "static/css/2.c83c8d54.chunk.css.map": "/parse-pdf-demo/static/css/2.c83c8d54.chunk.css.map",
-    "static/css/main.474cd322.chunk.css.map": "/parse-pdf-demo/static/css/main.474cd322.chunk.css.map",
+    "static/css/main.307b9341.chunk.css.map": "/parse-pdf-demo/static/css/main.307b9341.chunk.css.map",
     "static/media/demo_tags.pdf": "/parse-pdf-demo/static/media/demo_tags.a5053dd1.pdf"
   }
 }
