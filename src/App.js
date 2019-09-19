@@ -56,6 +56,7 @@ class App extends React.Component {
             structureTree: {},
             roleMap: {},
             classMap: {},
+            activeTagName: null,
         };
     }
 
@@ -132,6 +133,7 @@ class App extends React.Component {
         let mcid = parseInt(e.target.getAttribute('data-mcid'));
         let { name, relatives } = this.getTagName(mcid);
         let bboxTagname = e.target.getAttribute('data-tag-name');
+        let tagRoleMapPath = '';
         if (!bboxTagname) {
             e.target.setAttribute('data-tag-name', name);
         }
@@ -141,11 +143,23 @@ class App extends React.Component {
         });
 
         e.target.classList.add('_hovered');
+
+        if (this.state.roleMap[name]) {
+            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
+        }
+
+        this.setState({
+            activeTagName: `${name} ${tagRoleMapPath}`,
+        });
     }
 
     onBboxOut = (e) => {
         [...document.querySelectorAll('._hovered')].forEach((el) => {
             el.classList.remove('_hovered');
+        });
+
+        this.setState({
+            activeTagName: '',
         });
     }
 
@@ -280,7 +294,12 @@ class App extends React.Component {
                         </Document>
                     </div>
                 </article>
-                <div id='container' ref={this.setContainerRef}/>
+                <div id="container" ref={this.setContainerRef}/>
+                <div id="tagInfo">
+                    <div>
+                        <span className="tag-info-title">Tag name: </span>{this.state.activeTagName}
+                    </div>
+                </div>
             </div>
         );
     }
