@@ -130,44 +130,81 @@ class App extends React.Component {
 
     onBboxOver = (e) => {
         let mcid = parseInt(e.target.getAttribute('data-mcid'));
-        let tagName = this.getTagName(mcid);
+        let { name, relatives } = this.getTagName(mcid);
         let bboxTagname = e.target.getAttribute('data-tag-name');
         if (!bboxTagname) {
-            e.target.setAttribute('data-tag-name', tagName);
+            e.target.setAttribute('data-tag-name', name);
         }
+
+        relatives.forEach((elementMcid) => {
+            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
+        });
 
         e.target.classList.add('_hovered');
     }
 
     onBboxOut = (e) => {
-        e.target.classList.remove('_hovered');
+        [...document.querySelectorAll('._hovered')].forEach((el) => {
+            el.classList.remove('_hovered');
+        });
     }
 
     getTagName(mcid, tagNode = this.state.structureTree) {
         let node = '';
+        let relatives = [];
         Object.keys(tagNode).forEach((nodeName) => {
             if (tagNode[nodeName] === mcid) {
                 node = nodeName;
             } else if (tagNode[nodeName] instanceof Array) {
                 if (tagNode[nodeName].includes(mcid)) {
                     node = nodeName;
+                    relatives = this.getRelatives(tagNode[nodeName]);
                 } else {
                     node = tagNode[nodeName].filter((nodeFromArray) => {
                         if (!nodeFromArray) {
                             return false;
                         }
-                        return !!this.getTagName(mcid, nodeFromArray);
+                        return !!this.getTagName(mcid, nodeFromArray).name;
                     })[0];
                     if (node) {
                         node = this.getTagName(mcid, node);
+                        relatives = node.relatives;
+                        node = node.name;
                     }
                 }
             } else if (tagNode[nodeName] instanceof Object) {
                 node = this.getTagName(mcid, tagNode[nodeName]);
+                relatives = node.relatives;
+                node = node.name;
             }
         });
 
-        return node;
+        return {
+            name: node,
+            relatives
+        };
+    }
+
+    getRelatives(arrayOfRelatives) {
+        let relatives = [];
+        arrayOfRelatives.forEach((relative) => {
+            if (!relative) return;
+            if (typeof relative === 'number') {
+                relatives.push(relative);
+            } else if (relative instanceof Array && relative.length) {
+                relatives = [
+                    ...relatives,
+                    ...this.getRelatives(relative)
+                ];
+            } else if (relative instanceof Object) {
+                relatives = [
+                    ...relatives,
+                    ...this.getRelatives(Object.entries(relative))
+                ];
+            }
+        });
+
+        return relatives;
     }
 
     uploadFile = (e) => {
