@@ -1,46 +1,21 @@
 import React from 'react';
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
-import './App.css';
-import testPdf from './demo_tags.pdf';
+import testPdf from './files/demo_tags.pdf';
 import _ from 'lodash';
+
+import PdfPage from "./components/PdfPage";
+import './scss/main.scss';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 //pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
-
-let uploadInputRef;
-let containerRef;
-let activeTagName;
-let tagPath;
-
-function Pages({ numPages, onPageRenderSuccess }) {
-    let pagesArray = [];
-
-    for (let i = 1; i <= numPages; i++) {
-        pagesArray.push(
-            <Page className="pdf-page"
-                  pageNumber={i}
-                  key={`page-${i}`}
-                  renderAnnotationLayer={true}
-                  renderInteractiveForms={true}
-                  renderTextLayer={true}
-                  onRenderSuccess={onPageRenderSuccess}
-                  customTextRenderer={({height,  width, transform, scale, page, str}) => {
-                      /*
-                      height: height of text
-                      width: width of text
-                      transform: contain coordinates of text
-                      scale: will be used for coords. conversing
-                       */
-                      return str;
-                  }}
-            />
-        );
-    }
-
-    return pagesArray;
+let refs = {
+    uploadInputRef: null,
+    containerRef: null,
+    activeTagName: null,
+    tagPath: null,
 }
 
 class App extends React.Component {
@@ -68,6 +43,7 @@ class App extends React.Component {
         }
     }
 
+    //  Init data of uploaded PDF
     onDocumentLoadSuccess = (document) => {
         console.log(document);
         let structureTree = document._pdfInfo.structureTree || {};
@@ -85,17 +61,8 @@ class App extends React.Component {
         this.setState({ numPages });
     };
 
+    //  Create page overlay for BBOXes
     onPageRenderSuccess = (page) => {
-        /*page.getOperatorList().then(data => {
-            let boundingBoxes = data.argsArray[data.argsArray.length - 1][0];
-            this.setState({
-                boundingBoxes:
-                    this.state.boundingBoxes && this.state.renderedPages !== 0  ?
-                        {...this.state.boundingBoxes, ...boundingBoxes} : boundingBoxes,
-                renderedPages: this.state.renderedPages + 1
-            })
-        });*/
-
         page.getOperatorList().then((data) => {
             let positionData = data.argsArray[data.argsArray.length - 1];
             console.log('Data:', positionData);
@@ -111,7 +78,7 @@ class App extends React.Component {
             div.style.width = rect.width + 'px';
             div.style.position = 'absolute';
             div.id = 'div' + page.pageIndex;
-            containerRef.appendChild(div);
+            refs.containerRef.appendChild(div);
 
             div = document.getElementById('div' + page.pageIndex);
             _.map(positionData, (position, mcid) => {
@@ -130,38 +97,34 @@ class App extends React.Component {
         });
     }
 
-    onBboxOver = (e) => {
-        let mcid = parseInt(e.target.getAttribute('data-mcid'));
-        let { name, relatives, path } = this.getTagName(mcid);
-        let bboxTagname = e.target.getAttribute('data-tag-name');
-        let tagRoleMapPath = '';
-        if (!bboxTagname) {
-            e.target.setAttribute('data-tag-name', name);
+    //  Build pages
+    getPages() {
+        let pagesArray = [];
+        let { numPages } = this.state;
+
+        for (let pageIndex = 1; pageIndex <= numPages; pageIndex++) {
+            pagesArray.push(
+                <PdfPage pageIndex={pageIndex}
+                         onPageRenderSuccess={this.onPageRenderSuccess}
+                         key={`page-${pageIndex}`}
+                />
+            );
         }
 
-        relatives.forEach((elementMcid) => {
-            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
-        });
-
-        e.target.classList.add('_hovered');
-
-        if (this.state.roleMap[name]) {
-            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
-        }
-
-        activeTagName.textContent = `${name} ${tagRoleMapPath}`;
-        tagPath.textContent = path.join(' -> ');
+        return pagesArray;
     }
 
-    onBboxOut = (e) => {
-        [...document.querySelectorAll('._hovered')].forEach((el) => {
-            el.classList.remove('_hovered');
-        });
-
-        activeTagName.textContent = '';
-        tagPath.textContent = '';
-    }
-
+    /*
+     * Get tag name of hovered bbox
+     * @param mcid {integer} id of bbox
+     * @param tagNode {object} structure for searching
+     *
+     * @return {
+     *      name {string} tag name
+     *      relatives {array} tags from the same level
+     *      path {string} path to component through structure tree
+     * }
+     */
     getTagName(mcid, tagNode = this.state.structureTree) {
         let node = '';
         let relatives = [];
@@ -203,6 +166,7 @@ class App extends React.Component {
         };
     }
 
+    //  Get components from on level
     getRelatives(arrayOfRelatives) {
         let relatives = [];
         arrayOfRelatives.forEach((relative) => {
@@ -225,11 +189,60 @@ class App extends React.Component {
         return relatives;
     }
 
-    uploadFile = (e) => {
+    //  Set React ref
+    setRef(target) {
+        return (node) => {
+            refs[target] = node;
+        };
+    }
+
+    /*
+    *   HANDLERS
+     */
+
+    //  On bbox mouseover
+    onBboxOver = (e) => {
+        let mcid = parseInt(e.target.getAttribute('data-mcid'));
+        let { name, relatives, path } = this.getTagName(mcid);
+        let bboxTagname = e.target.getAttribute('data-tag-name');
+        let tagRoleMapPath = '';
+        if (!bboxTagname) {
+            e.target.setAttribute('data-tag-name', name);
+        }
+
+        relatives.forEach((elementMcid) => {
+            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
+        });
+
+        e.target.classList.add('_hovered');
+
+        if (this.state.roleMap[name]) {
+            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
+        }
+
+        refs.activeTagName.textContent = `${name} ${tagRoleMapPath}`;
+        refs.tagPath.textContent = path.join(' -> ');
+    }
+
+    //  On bbox mouseout
+    onBboxOut = (e) => {
+        [...document.querySelectorAll('._hovered')].forEach((el) => {
+            el.classList.remove('_hovered');
+        });
+
+        refs.activeTagName.textContent = '';
+        refs.tagPath.textContent = '';
+    }
+
+    onUploadPdfClick = () => {
+        refs.uploadInputRef.click();
+    }
+
+    onUploadFile = (e) => {
         let file = e.target.files[0];
         let reader = new FileReader();
 
-        reader.onload = this._onUploadEnd(file);
+        reader.onload = this.onUploadEnd(file);
 
         if (!file) {
             this.setState({
@@ -240,11 +253,7 @@ class App extends React.Component {
         reader.readAsArrayBuffer(file);
     }
 
-    uploadPdf = () => {
-        uploadInputRef.click();
-    }
-
-    _onUploadEnd = (pdf) => {
+    onUploadEnd = (pdf) => {
         document.getElementById('container').innerHTML = "";
 
         this.setState({
@@ -254,38 +263,22 @@ class App extends React.Component {
         })
     }
 
-    _setRef(node) {
-        uploadInputRef = node;
-    }
-
-    setContainerRef(node) {
-        containerRef = node;
-    }
-
-    setActiveTagName(node) {
-        activeTagName = node;
-    }
-
-    setTagPath(node) {
-        tagPath = node;
-    }
-
     onError = (e) => {
         this.setState({
-           error: e.message
+            error: e.message
         });
     }
 
     render() {
-        const { pageNumber, numPages, title } = this.state;
+        const { numPages, title } = this.state;
 
         return (
             <div className="App">
                 <header className="App-header">
-                    <button onClick={this.uploadPdf}>
+                    <button onClick={this.onUploadPdfClick}>
                         Upload other pdf
                     </button>
-                    <input type='file' onChange={this.uploadFile.bind(this)} ref={this._setRef} style={{'display': 'none'}}/>
+                    <input type='file' onChange={this.onUploadFile} ref={this.setRef('uploadInputRef')} style={{'display': 'none'}}/>
                 </header>
                 <article className="app-main-body">
                     <div className="pdf-data">
@@ -302,19 +295,19 @@ class App extends React.Component {
                                   onLoadError={this.onError}
                                   error={<div className="error-msg">{this.state.error}</div> }
                         >
-                            {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
+                            {this.getPages()}
                         </Document>
                     </div>
                 </article>
-                <div id="container" ref={this.setContainerRef}/>
+                <div id="container" ref={this.setRef('containerRef')}/>
                 <div id="tagInfo">
                     <div>
                         <span className="tag-info-title">Tag name: </span>
-                        <span ref={this.setActiveTagName} />
+                        <span ref={this.setRef('activeTagName')} />
                     </div>
                     <div>
                         <span className="tag-info-title">Tree path: </span>
-                        <span ref={this.setTagPath} />
+                        <span ref={this.setRef('tagPath')} />
                     </div>
                 </div>
             </div>

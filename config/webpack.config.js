@@ -498,7 +498,7 @@ module.exports = function(webpackEnv) {
     plugins: [
       new CopyWebpackPlugin([
         {
-          from: 'src/build/pdf.worker.js',
+          from: 'src/pdfjs/pdf.worker.js',
           to: 'pdf.worker.js'
         },
       ]),

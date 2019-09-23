@@ -1,0 +1,49 @@
+.pdf-wrapper {
+  display: flex;
+}
+
+.pdf-page {
+  margin: 10px;
+  border: 1px grey solid;
+}
+
+.pdf-data {
+  display: flex;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+
+  * {
+    margin: 0;
+  }
+}
+
+.bbox-container {
+  position: absolute;
+}
+
+.bbox {
+  border: none;
+  position: absolute;
+
+  &._hovered {
+    border: 1px solid red;
+  }
+}
+
+#tagInfo {
+  position: fixed;
+  top: 50px;
+  left: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #fff;
+  transition: all .1s linear;
+  border: 1px solid black;
+  padding: 5px 10px;
+
+  .tag-info-title {
+    font-weight: bold;
+  }
+}
