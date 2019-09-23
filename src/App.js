@@ -12,6 +12,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 
 let uploadInputRef;
 let containerRef;
+let activeTagName;
+let tagPath;
 
 function Pages({ numPages, onPageRenderSuccess }) {
     let pagesArray = [];
@@ -56,8 +58,6 @@ class App extends React.Component {
             structureTree: {},
             roleMap: {},
             classMap: {},
-            activeTagName: null,
-            tagPath: null,
         };
     }
 
@@ -149,10 +149,8 @@ class App extends React.Component {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        this.setState({
-            activeTagName: `${name} ${tagRoleMapPath}`,
-            tagPath: path.join(' -> '),
-        });
+        activeTagName.textContent = `${name} ${tagRoleMapPath}`;
+        tagPath.textContent = path.join(' -> ');
     }
 
     onBboxOut = (e) => {
@@ -160,10 +158,8 @@ class App extends React.Component {
             el.classList.remove('_hovered');
         });
 
-        this.setState({
-            activeTagName: '',
-            tagPath: '',
-        });
+        activeTagName.textContent = '';
+        tagPath.textContent = '';
     }
 
     getTagName(mcid, tagNode = this.state.structureTree) {
@@ -266,6 +262,14 @@ class App extends React.Component {
         containerRef = node;
     }
 
+    setActiveTagName(node) {
+        activeTagName = node;
+    }
+
+    setTagPath(node) {
+        tagPath = node;
+    }
+
     onError = (e) => {
         this.setState({
            error: e.message
@@ -305,10 +309,12 @@ class App extends React.Component {
                 <div id="container" ref={this.setContainerRef}/>
                 <div id="tagInfo">
                     <div>
-                        <span className="tag-info-title">Tag name: </span>{this.state.activeTagName}
+                        <span className="tag-info-title">Tag name: </span>
+                        <span ref={this.setActiveTagName} />
                     </div>
                     <div>
-                        <span className="tag-info-title">Tree path: </span>{this.state.tagPath}
+                        <span className="tag-info-title">Tree path: </span>
+                        <span ref={this.setTagPath} />
                     </div>
                 </div>
             </div>
