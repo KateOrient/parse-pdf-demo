@@ -951,6 +951,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var moveText;
       var mcid = null;
       var mc_font_size = null;
+      var mc_line_width = 0;
+      var spaceWidth = 0;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -975,6 +977,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           }
           var args = operation.args;
           var fn = operation.fn;
+          var transformResult;
 
           switch (fn | 0) {
             case OPS.transform:
@@ -1058,16 +1061,15 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 task, stateManager.state).then(function (translated) {
                 operatorList.addDependency(translated.loadedName);
                 fontMatrix = translated.font.fontMatrix;
+                spaceWidth = translated.font.spaceWidth;
                 operatorList.addOp(OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
             case OPS.setTextMatrix:
               let matrix = [...args];
-              if (matrix[0] === 1) {
-                matrix[0] = mc_font_size;
-              }
-              if (matrix[3] === 1) {
-                matrix[3] = mc_font_size;
+              if (mc_font_size) {
+                matrix[0] *= mc_font_size;
+                matrix[3] *= mc_font_size;
               }
               textMatrix = matrix;
               if (!mc_x || mc_x > matrix[4]) {
@@ -1087,6 +1089,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
 
               transformMatrix = Util.transform(fontMatrix, matrix);
+              mc_line_width = 0;
               break;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -1109,12 +1112,21 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               return;
             case OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
+              if (!mc_x && !mc_y) {
+                mc_x = textMatrix[4] + mc_line_width;
+                mc_y = textMatrix[5];
+              }
               width = 0;
               args[0].map(glyph => {
-                width += glyph.width * transformMatrix[0]
+                width += glyph.width;
               });
+              width *= transformMatrix[0];
               if (width > mc_width) {
                 mc_width = width;
+              }
+              mc_line_width += width;
+              if (mc_height === null) {
+                mc_height = textMatrix[3];
               }
               break;
             case OPS.showSpacedText:
@@ -1133,32 +1145,55 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
               args[0] = combinedGlyphs;
               fn = OPS.showText;
+
+              if (!mc_x && !mc_y) {
+                mc_x = textMatrix[4] + mc_line_width;
+                mc_y = textMatrix[5];
+              }
               width = 0;
               args[0].map(glyph => {
-                width += (glyph.width ? glyph.width : glyph) * transformMatrix[0];
+                width += (glyph.width ? glyph.width : glyph);
               });
+              width *= transformMatrix[0];
+              mc_line_width += width;
               if (width > mc_width) {
                 mc_width = width;
               }
+              if (mc_height === null) {
+                mc_height = textMatrix[3];
+              }
               break;
+            case OPS.nextLine:
+              transformResult = Util.applyTransform(moveText, textMatrix);
+              textMatrix[5] = transformResult[1];
+              mc_x = textMatrix[4];
+              mc_y = textMatrix[5];
+              mc_line_width = 0;
+              break;
+            case OPS.setLeadingMoveText:
             case OPS.moveText:
               moveText = args;
-              if (mc_x && mc_y && mc_height && mc_width) {
-                if (args[0] > 0 && mc_width < args[0] * textMatrix[0]) {
-                  mc_width += args[0] * textMatrix[0];
-                  mc_x += args[0] * textMatrix[0];
-                } else if (args[0] < 0) {
-                  mc_x += args[0] * textMatrix[0];
-                  mc_width += -args[0] * textMatrix[0]
+              transformResult = Util.applyTransform(args, textMatrix);
+              textMatrix[4] = transformResult[0];
+              textMatrix[5] = transformResult[1];
+              if (mc_x !== null) {
+                if (textMatrix[4] < mc_x) {
+                  mc_width = mc_x + mc_width - textMatrix[5];
+                  mc_x = textMatrix[4];
                 }
-
-                if (args[1] > 0 && mc_height < args[1] * textMatrix[3]) {
-                  mc_height += args[1] * textMatrix[3];
-                } else if (args[1] < 0) {
-                  mc_y += args[1] * textMatrix[3];
-                  mc_height += -args[1] * textMatrix[3];
-                }
+              } else {
+                mc_x = textMatrix[4];
               }
+
+              if (mc_y !== null) {
+                if (textMatrix[5] < mc_y) {
+                  mc_height = mc_y + mc_height - textMatrix[5];
+                  mc_y = textMatrix[5];
+                }
+              } else {
+                mc_y = textMatrix[5];
+              }
+              mc_line_width = 0;
               break;
             case OPS.nextLineShowText:
               operatorList.addOp(OPS.nextLine);
