@@ -1,9 +1,13 @@
 .App-header {
-  background-color: #282c34;
+  position: fixed;
+  box-shadow: $box-shadow--basic;
+  height: 50px;
+  background: $white;
+  width: 100%;
+  z-index: 1000;
+  padding: 0 15px 0 15px;
+
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }

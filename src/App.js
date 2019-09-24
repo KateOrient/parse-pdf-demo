@@ -1,10 +1,11 @@
 import React from 'react';
-import { Document, pdfjs } from "react-pdf";
+import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import testPdf from './files/demo_tags.pdf';
 import _ from 'lodash';
 
-import PdfPage from "./components/PdfPage";
+import PdfPage from './components/PdfPage';
+import Header from './components/Header';
 import './scss/main.scss';
 
 //  Set pdf.js build
@@ -12,11 +13,12 @@ pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 //pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 let refs = {
-    uploadInputRef: null,
     containerRef: null,
     activeTagName: null,
     tagPath: null,
-}
+};
+
+let loadedPages = 0;
 
 class App extends React.Component {
     constructor(props) {
@@ -33,6 +35,7 @@ class App extends React.Component {
             structureTree: {},
             roleMap: {},
             classMap: {},
+            loading: true,
         };
     }
 
@@ -93,7 +96,13 @@ class App extends React.Component {
                 child.onmouseover = this.onBboxOver;
                 child.onmouseout  = this.onBboxOut;
                 div.appendChild(child);
-            })
+            });
+            loadedPages++;
+            if (loadedPages === this.state.numPages) {
+                this.setState({
+                    loading: false,
+                });
+            }
         });
     }
 
@@ -222,6 +231,9 @@ class App extends React.Component {
 
         refs.activeTagName.textContent = `${name} ${tagRoleMapPath}`;
         refs.tagPath.textContent = path.join(' -> ');
+
+        refs.tagPath.classList.remove('_empty');
+        refs.activeTagName.classList.remove('_empty');
     }
 
     //  On bbox mouseout
@@ -230,15 +242,17 @@ class App extends React.Component {
             el.classList.remove('_hovered');
         });
 
-        refs.activeTagName.textContent = '';
-        refs.tagPath.textContent = '';
-    }
-
-    onUploadPdfClick = () => {
-        refs.uploadInputRef.click();
+        refs.activeTagName.textContent = 'None';
+        refs.tagPath.textContent = 'None';
+        refs.tagPath.classList.add('_empty');
+        refs.activeTagName.classList.add('_empty');
     }
 
     onUploadFile = (e) => {
+        loadedPages = 0;
+        this.setState({
+            loading: true,
+        });
         let file = e.target.files[0];
         let reader = new FileReader();
 
@@ -246,11 +260,20 @@ class App extends React.Component {
 
         if (!file) {
             this.setState({
-                pdf: null
+                pdf: null,
+                loading: false,
             });
             return;
         }
         reader.readAsArrayBuffer(file);
+    }
+
+    onUploadSctrictFile = (pdf) => {
+        loadedPages = 0;
+        this.setState({
+            loading: true,
+        });
+        this.onUploadEnd(pdf);
     }
 
     onUploadEnd = (pdf) => {
@@ -259,32 +282,23 @@ class App extends React.Component {
         this.setState({
             numPages: null,
             pageNumber: 1,
-            pdf
+            pdf,
         })
     }
 
     onError = (e) => {
         this.setState({
-            error: e.message
+            error: e.message,
+            loading: false,
         });
     }
 
     render() {
-        const { numPages, title } = this.state;
-
+        const { numPages, title, loading } = this.state;
         return (
-            <div className="App">
-                <header className="App-header">
-                    <button onClick={this.onUploadPdfClick}>
-                        Upload other pdf
-                    </button>
-                    <input type='file' onChange={this.onUploadFile} ref={this.setRef('uploadInputRef')} style={{'display': 'none'}}/>
-                </header>
-                <article className="app-main-body">
-                    <div className="pdf-data">
-                        <p><b>Title: </b>{title}</p>
-                        <p><b>Number of pages: </b>{numPages}</p>
-                    </div>
+            <div className={`App ${loading ? '_loading' : ''}`}>
+                <Header onUploadFile={this.onUploadFile} onUploadSctrictFile={this.onUploadSctrictFile} loading={loading}/>
+                <main className="app-main-body">
                     <div className="pdf-wrapper">
                         <Document file={this.state.pdf}
                                   onLoadSuccess={this.onDocumentLoadSuccess}
@@ -298,16 +312,24 @@ class App extends React.Component {
                             {this.getPages()}
                         </Document>
                     </div>
-                </article>
+                </main>
                 <div id="container" ref={this.setRef('containerRef')}/>
                 <div id="tagInfo">
-                    <div>
-                        <span className="tag-info-title">Tag name: </span>
-                        <span ref={this.setRef('activeTagName')} />
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Document title</div>
+                        <div ref={this.setRef('activeTagName')} className={title ? '' : '_empty'}>{title || 'None'}</div>
                     </div>
-                    <div>
-                        <span className="tag-info-title">Tree path: </span>
-                        <span ref={this.setRef('tagPath')} />
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Number of pages</div>
+                        <div ref={this.setRef('activeTagName')}>{numPages}</div>
+                    </div>
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Tag name</div>
+                        <div ref={this.setRef('activeTagName')} className="_empty">None</div>
+                    </div>
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Tree path</div>
+                        <div ref={this.setRef('tagPath')} className="_empty">None</div>
                     </div>
                 </div>
             </div>
