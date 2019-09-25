@@ -9,8 +9,6 @@ body {
 }
 
 .App {
-  text-align: center;
-
   &._loading {
     .app-main-body {
       visibility: hidden;
