@@ -950,7 +950,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var width;
       var moveText;
       var mcid = null;
-      var mc_font_size = null;
+      var mc_font_size = 1;
       var mc_line_width = 0;
       var spaceWidth = 0;
       return new Promise(function promiseBody(resolve, reject) {
@@ -978,7 +978,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
           var transformResult;
-
           switch (fn | 0) {
             case OPS.transform:
               mc_x = args[4];
@@ -1152,9 +1151,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
               width = 0;
               args[0].map(glyph => {
-                width += (glyph.width ? glyph.width : glyph);
+                width += (glyph.width ? glyph.width : -glyph) * transformMatrix[0];
               });
-              width *= transformMatrix[0];
               mc_line_width += width;
               if (width > mc_width) {
                 mc_width = width;

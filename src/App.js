@@ -93,8 +93,8 @@ class App extends React.Component {
                 child.className = 'bbox';
                 child.setAttribute('data-mcid', mcid);
             	child.title = mcid;
-                child.onmouseover = this.onBboxOver;
-                child.onmouseout  = this.onBboxOut;
+                //child.onmouseover = this.onBboxOver;
+                //child.onmouseout  = this.onBboxOut;
                 div.appendChild(child);
             });
             loadedPages++;
