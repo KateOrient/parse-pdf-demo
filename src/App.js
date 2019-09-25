@@ -93,19 +93,6 @@ class App extends React.Component {
 
             bboxCanvas.onmousemove = this.onBboxMove;
 
-            /*_.map(positionData, (position, mcid) => {
-                let child = document.createElement('div');
-                child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
-                child.style.left = position.x + 'px';
-                child.style.height = position.height + 'px';
-                child.style.width = position.width + 'px';
-                child.className = 'bbox';
-                child.setAttribute('data-mcid', mcid);
-            	child.title = mcid;
-                child.onmouseover = this.onBboxOver;
-                //child.onmouseout  = this.onBboxOut;
-                div.appendChild(child);
-            });*/
             loadedPages++;
             if (loadedPages === this.state.numPages) {
                 this.setState({
@@ -113,9 +100,7 @@ class App extends React.Component {
                     bboxByPage,
                 });
             } else {
-                this.setState({
-                    bboxByPage,
-                });
+                this.state.bboxByPage = bboxByPage;
             }
         });
     }
@@ -249,14 +234,12 @@ class App extends React.Component {
         let bboxList = this.state.bboxByPage[canvas.getAttribute('data-page')];
 
         ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+        ctx.strokeStyle = 'red';
         let bboxCoords = this.isInBbox({ x, y, bboxList});
         if (!bboxCoords) {
             this.fillDocData();
             return;
         }
-
-        ctx.strokeStyle = 'green';
-        ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
 
         let mcid = parseInt(bboxCoords.mcid);
         let { name, relatives, path } = this.getTagName(mcid);
@@ -282,8 +265,9 @@ class App extends React.Component {
         });
 
         if (relatives.length) {
-            ctx.strokeStyle = 'red';
             ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
+        } else {
+            ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
         }
 
         if (this.state.roleMap[name]) {
