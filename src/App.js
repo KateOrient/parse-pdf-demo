@@ -36,6 +36,7 @@ class App extends React.Component {
             roleMap: {},
             classMap: {},
             loading: true,
+            bboxByPage: {},
         };
     }
 
@@ -68,23 +69,31 @@ class App extends React.Component {
     onPageRenderSuccess = (page) => {
         page.getOperatorList().then((data) => {
             let positionData = data.argsArray[data.argsArray.length - 1];
-            console.log('Data:', positionData);
+            let bboxByPage = { ...this.state.bboxByPage };
+            bboxByPage[page.pageIndex] = positionData;
+            //console.log('Data:', positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
 
-            let div = document.createElement('div');
-            div.innerHTML = "";
-            div.style.top = rect.y + 'px';
-            div.style.left = rect.x + 'px';
-            div.style.height = rect.height + 'px';
-            div.style.width = rect.width + 'px';
-            div.style.position = 'absolute';
-            div.id = 'div' + page.pageIndex;
-            refs.containerRef.appendChild(div);
+            let bboxCanvas = document.createElement('canvas');
+            bboxCanvas.style.top = rect.y + 'px';
+            bboxCanvas.style.left = rect.x + 'px';
+            bboxCanvas.style.height = rect.height + 'px';
+            bboxCanvas.style.width = rect.width + 'px';
+            bboxCanvas.height = rect.height;
+            bboxCanvas.width = rect.width;
+            bboxCanvas.style.position = 'absolute';
+            bboxCanvas.id = 'bboxCanvas' + page.pageIndex;
+            bboxCanvas.setAttribute('data-page', page.pageIndex);
+            refs.containerRef.appendChild(bboxCanvas);
+            let ctx = bboxCanvas.getContext('2d');
+            ctx.translate(0, rect.height);   // reset where 0,0 is located
+            ctx.scale(1,-1);
 
-            div = document.getElementById('div' + page.pageIndex);
-            _.map(positionData, (position, mcid) => {
+            bboxCanvas.onmousemove = this.onBboxMove;
+
+            /*_.map(positionData, (position, mcid) => {
                 let child = document.createElement('div');
                 child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
                 child.style.left = position.x + 'px';
@@ -93,14 +102,19 @@ class App extends React.Component {
                 child.className = 'bbox';
                 child.setAttribute('data-mcid', mcid);
             	child.title = mcid;
-                //child.onmouseover = this.onBboxOver;
+                child.onmouseover = this.onBboxOver;
                 //child.onmouseout  = this.onBboxOut;
                 div.appendChild(child);
-            });
+            });*/
             loadedPages++;
             if (loadedPages === this.state.numPages) {
                 this.setState({
                     loading: false,
+                    bboxByPage,
+                });
+            } else {
+                this.setState({
+                    bboxByPage,
                 });
             }
         });
@@ -205,53 +219,105 @@ class App extends React.Component {
         };
     }
 
+    isInBbox({x, y, bboxList}) {
+        let bbox = false;
+        Object.keys(bboxList).forEach((key) => {
+            let isX = x >= bboxList[key].x && x <= (bboxList[key].x + bboxList[key].width);
+            let isY = y >= bboxList[key].y && y <= (bboxList[key].y + bboxList[key].height);
+
+            if (isX && isY) {
+                bbox = {
+                    ...bboxList[key],
+                    mcid: key,
+                };
+            }
+        });
+
+        return bbox;
+    }
+
     /*
     *   HANDLERS
      */
 
-    //  On bbox mouseover
-    onBboxOver = (e) => {
-        let mcid = parseInt(e.target.getAttribute('data-mcid'));
-        let { name, relatives, path } = this.getTagName(mcid);
-        let bboxTagname = e.target.getAttribute('data-tag-name');
-        let tagRoleMapPath = '';
-        if (!bboxTagname) {
-            e.target.setAttribute('data-tag-name', name);
+    onBboxMove = (e) => {
+        let canvas = e.target;
+        let rect = canvas.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = canvas.offsetHeight - (e.clientY - rect.top);
+        let ctx = canvas.getContext('2d');
+        let bboxList = this.state.bboxByPage[canvas.getAttribute('data-page')];
+
+        ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+        let bboxCoords = this.isInBbox({ x, y, bboxList});
+        if (!bboxCoords) {
+            this.fillDocData();
+            return;
         }
 
-        relatives.forEach((elementMcid) => {
-            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
+        ctx.strokeStyle = 'green';
+        ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
+
+        let mcid = parseInt(bboxCoords.mcid);
+        let { name, relatives, path } = this.getTagName(mcid);
+        let tagRoleMapPath = '';
+        let minX = 0;
+        let maxX = 0;
+        let minY = 0;
+        let maxY = 0;
+        delete relatives[mcid];
+        relatives.forEach((elementMcid, index) => {
+            let { x, y, width, height } = bboxList[elementMcid];
+            if (!index) {
+                minX = x;
+                maxX = x + width;
+                minY = y;
+                maxY = y + height;
+            }
+
+            minX = minX < x ? minX : x;
+            maxX = maxX > (x + width) ? maxX : (x + width);
+            minY = minY < y ? minY : y;
+            maxY = maxY > (y + height) ? maxY : (y + height);
         });
 
-        e.target.classList.add('_hovered');
+        if (relatives.length) {
+            ctx.strokeStyle = 'red';
+            ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
+        }
 
         if (this.state.roleMap[name]) {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        refs.activeTagName.textContent = `${name} ${tagRoleMapPath}`;
-        refs.tagPath.textContent = path.join(' -> ');
-
-        refs.tagPath.classList.remove('_empty');
-        refs.activeTagName.classList.remove('_empty');
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
     }
 
-    //  On bbox mouseout
-    onBboxOut = (e) => {
-        [...document.querySelectorAll('._hovered')].forEach((el) => {
-            el.classList.remove('_hovered');
-        });
+    fillDocData(tagName = null, tagPath = null) {
+        const EMPTY = 'None';
 
-        refs.activeTagName.textContent = 'None';
-        refs.tagPath.textContent = 'None';
-        refs.tagPath.classList.add('_empty');
-        refs.activeTagName.classList.add('_empty');
+        if (tagName) {
+            refs.activeTagName.textContent = tagName;
+            refs.tagPath.classList.remove('_empty');
+        } else {
+            refs.activeTagName.textContent = EMPTY;
+            refs.tagPath.classList.add('_empty');
+        }
+
+        if (tagPath) {
+            refs.tagPath.textContent = tagPath;
+            refs.activeTagName.classList.remove('_empty');
+        } else {
+            refs.tagPath.textContent = EMPTY;
+            refs.activeTagName.classList.add('_empty');
+        }
     }
 
     onUploadFile = (e) => {
         loadedPages = 0;
         this.setState({
             loading: true,
+            bboxByPage: {},
         });
         let file = e.target.files[0];
         let reader = new FileReader();
@@ -272,6 +338,7 @@ class App extends React.Component {
         loadedPages = 0;
         this.setState({
             loading: true,
+            bboxByPage: {},
         });
         this.onUploadEnd(pdf);
     }
