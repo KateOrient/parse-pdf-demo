@@ -1,0 +1,13 @@
+.App-header {
+  position: fixed;
+  box-shadow: $box-shadow--basic;
+  height: 50px;
+  background: $white;
+  width: 100%;
+  z-index: 1000;
+  padding: 0 15px 0 15px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

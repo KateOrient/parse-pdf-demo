@@ -1,0 +1,53 @@
+.pdf-wrapper {
+  display: flex;
+}
+
+.pdf-page {
+  margin: 10px;
+  box-shadow: $box-shadow--basic;
+}
+
+.pdf-data {
+  display: flex;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+
+  * {
+    margin: 0;
+  }
+}
+
+#tagInfo {
+  position: fixed;
+  top: 50px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #fff;
+  transition: all .1s linear;
+  border: none;
+  padding: 5px 10px;
+  box-shadow: $box-shadow--basic;
+  width: 300px;
+
+  .tag-prop {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+
+    ._empty {
+      color: grey;
+    }
+  }
+
+  .tag-info-title {
+    font-weight: bold;
+  }
+}
+
+.pdf-loading {
+  font-weight: bold;
+}

@@ -1,45 +1,24 @@
 import React from 'react';
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
-import './App.css';
-import testPdf from './demo_tags.pdf';
+import testPdf from './files/demo_tags.pdf';
 import _ from 'lodash';
+
+import PdfPage from './components/PdfPage';
+import Header from './components/Header';
+import './scss/main.scss';
 
 //  Set pdf.js build
 pdfjs.GlobalWorkerOptions.workerSrc = `pdf.worker.js`;
 //pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
+let refs = {
+    containerRef: null,
+    activeTagName: null,
+    tagPath: null,
+};
 
-let uploadInputRef;
-let containerRef;
-
-function Pages({ numPages, onPageRenderSuccess }) {
-    let pagesArray = [];
-
-    for (let i = 1; i <= numPages; i++) {
-        pagesArray.push(
-            <Page className="pdf-page"
-                  pageNumber={i}
-                  key={`page-${i}`}
-                  renderAnnotationLayer={true}
-                  renderInteractiveForms={true}
-                  renderTextLayer={true}
-                  onRenderSuccess={onPageRenderSuccess}
-                  customTextRenderer={({height,  width, transform, scale, page, str}) => {
-                      /*
-                      height: height of text
-                      width: width of text
-                      transform: contain coordinates of text
-                      scale: will be used for coords. conversing
-                       */
-                      return str;
-                  }}
-            />
-        );
-    }
-
-    return pagesArray;
-}
+let loadedPages = 0;
 
 class App extends React.Component {
     constructor(props) {
@@ -56,8 +35,8 @@ class App extends React.Component {
             structureTree: {},
             roleMap: {},
             classMap: {},
-            activeTagName: null,
-            tagPath: null,
+            loading: true,
+            bboxByPage: {},
         };
     }
 
@@ -68,6 +47,7 @@ class App extends React.Component {
         }
     }
 
+    //  Init data of uploaded PDF
     onDocumentLoadSuccess = (document) => {
         console.log(document);
         let structureTree = document._pdfInfo.structureTree || {};
@@ -85,87 +65,74 @@ class App extends React.Component {
         this.setState({ numPages });
     };
 
+    //  Create page overlay for BBOXes
     onPageRenderSuccess = (page) => {
-        /*page.getOperatorList().then(data => {
-            let boundingBoxes = data.argsArray[data.argsArray.length - 1][0];
-            this.setState({
-                boundingBoxes:
-                    this.state.boundingBoxes && this.state.renderedPages !== 0  ?
-                        {...this.state.boundingBoxes, ...boundingBoxes} : boundingBoxes,
-                renderedPages: this.state.renderedPages + 1
-            })
-        });*/
-
         page.getOperatorList().then((data) => {
             let positionData = data.argsArray[data.argsArray.length - 1];
-            console.log('Data:', positionData);
+            let bboxByPage = { ...this.state.bboxByPage };
+            bboxByPage[page.pageIndex] = positionData;
+            //console.log('Data:', positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
 
-            let div = document.createElement('div');
-            div.innerHTML = "";
-            div.style.top = rect.y + 'px';
-            div.style.left = rect.x + 'px';
-            div.style.height = rect.height + 'px';
-            div.style.width = rect.width + 'px';
-            div.style.position = 'absolute';
-            div.id = 'div' + page.pageIndex;
-            containerRef.appendChild(div);
+            let bboxCanvas = document.createElement('canvas');
+            bboxCanvas.style.top = rect.y + 'px';
+            bboxCanvas.style.left = rect.x + 'px';
+            bboxCanvas.style.height = rect.height + 'px';
+            bboxCanvas.style.width = rect.width + 'px';
+            bboxCanvas.height = rect.height;
+            bboxCanvas.width = rect.width;
+            bboxCanvas.style.position = 'absolute';
+            bboxCanvas.id = 'bboxCanvas' + page.pageIndex;
+            bboxCanvas.setAttribute('data-page', page.pageIndex);
+            refs.containerRef.appendChild(bboxCanvas);
+            let ctx = bboxCanvas.getContext('2d');
+            ctx.translate(0, rect.height);   // reset where 0,0 is located
+            ctx.scale(1,-1);
 
-            div = document.getElementById('div' + page.pageIndex);
-            _.map(positionData, (position, mcid) => {
-                let child = document.createElement('div');
-                child.style.top = parseInt(canvas.style.height, 10) - position.y - position.height  + 'px';
-                child.style.left = position.x + 'px';
-                child.style.height = position.height + 'px';
-                child.style.width = position.width + 'px';
-                child.className = 'bbox';
-                child.setAttribute('data-mcid', mcid);
-            	child.title = mcid;
-                child.onmouseover = this.onBboxOver;
-                child.onmouseout  = this.onBboxOut;
-                div.appendChild(child);
-            })
+            bboxCanvas.onmousemove = this.onBboxMove;
+
+            loadedPages++;
+            if (loadedPages === this.state.numPages) {
+                this.setState({
+                    loading: false,
+                    bboxByPage,
+                });
+            } else {
+                this.state.bboxByPage = bboxByPage;
+            }
         });
     }
 
-    onBboxOver = (e) => {
-        let mcid = parseInt(e.target.getAttribute('data-mcid'));
-        let { name, relatives, path } = this.getTagName(mcid);
-        let bboxTagname = e.target.getAttribute('data-tag-name');
-        let tagRoleMapPath = '';
-        if (!bboxTagname) {
-            e.target.setAttribute('data-tag-name', name);
+    //  Build pages
+    getPages() {
+        let pagesArray = [];
+        let { numPages } = this.state;
+
+        for (let pageIndex = 1; pageIndex <= numPages; pageIndex++) {
+            pagesArray.push(
+                <PdfPage pageIndex={pageIndex}
+                         onPageRenderSuccess={this.onPageRenderSuccess}
+                         key={`page-${pageIndex}`}
+                />
+            );
         }
 
-        relatives.forEach((elementMcid) => {
-            document.querySelector(`[data-mcid="${elementMcid}"]`).classList.add('_hovered');
-        });
-
-        e.target.classList.add('_hovered');
-
-        if (this.state.roleMap[name]) {
-            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
-        }
-
-        this.setState({
-            activeTagName: `${name} ${tagRoleMapPath}`,
-            tagPath: path.join(' -> '),
-        });
+        return pagesArray;
     }
 
-    onBboxOut = (e) => {
-        [...document.querySelectorAll('._hovered')].forEach((el) => {
-            el.classList.remove('_hovered');
-        });
-
-        this.setState({
-            activeTagName: '',
-            tagPath: '',
-        });
-    }
-
+    /*
+     * Get tag name of hovered bbox
+     * @param mcid {integer} id of bbox
+     * @param tagNode {object} structure for searching
+     *
+     * @return {
+     *      name {string} tag name
+     *      relatives {array} tags from the same level
+     *      path {string} path to component through structure tree
+     * }
+     */
     getTagName(mcid, tagNode = this.state.structureTree) {
         let node = '';
         let relatives = [];
@@ -207,6 +174,7 @@ class App extends React.Component {
         };
     }
 
+    //  Get components from on level
     getRelatives(arrayOfRelatives) {
         let relatives = [];
         arrayOfRelatives.forEach((relative) => {
@@ -229,65 +197,159 @@ class App extends React.Component {
         return relatives;
     }
 
-    uploadFile = (e) => {
+    //  Set React ref
+    setRef(target) {
+        return (node) => {
+            refs[target] = node;
+        };
+    }
+
+    isInBbox({x, y, bboxList}) {
+        let bbox = false;
+        Object.keys(bboxList).forEach((key) => {
+            let isX = x >= bboxList[key].x && x <= (bboxList[key].x + bboxList[key].width);
+            let isY = y >= bboxList[key].y && y <= (bboxList[key].y + bboxList[key].height);
+
+            if (isX && isY) {
+                bbox = {
+                    ...bboxList[key],
+                    mcid: key,
+                };
+            }
+        });
+
+        return bbox;
+    }
+
+    /*
+    *   HANDLERS
+     */
+
+    onBboxMove = (e) => {
+        let canvas = e.target;
+        let rect = canvas.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = canvas.offsetHeight - (e.clientY - rect.top);
+        let ctx = canvas.getContext('2d');
+        let bboxList = this.state.bboxByPage[canvas.getAttribute('data-page')];
+
+        ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+        ctx.strokeStyle = 'red';
+        let bboxCoords = this.isInBbox({ x, y, bboxList});
+        if (!bboxCoords) {
+            this.fillDocData();
+            return;
+        }
+
+        let mcid = parseInt(bboxCoords.mcid);
+        let { name, relatives, path } = this.getTagName(mcid);
+        let tagRoleMapPath = '';
+        let minX = 0;
+        let maxX = 0;
+        let minY = 0;
+        let maxY = 0;
+        delete relatives[mcid];
+        relatives.forEach((elementMcid, index) => {
+            let { x, y, width, height } = bboxList[elementMcid];
+            if (!index) {
+                minX = x;
+                maxX = x + width;
+                minY = y;
+                maxY = y + height;
+            }
+
+            minX = minX < x ? minX : x;
+            maxX = maxX > (x + width) ? maxX : (x + width);
+            minY = minY < y ? minY : y;
+            maxY = maxY > (y + height) ? maxY : (y + height);
+        });
+
+        if (relatives.length) {
+            ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
+        } else {
+            ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
+        }
+
+        if (this.state.roleMap[name]) {
+            tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
+        }
+
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
+    }
+
+    fillDocData(tagName = null, tagPath = null) {
+        const EMPTY = 'None';
+
+        if (tagName) {
+            refs.activeTagName.textContent = tagName;
+            refs.tagPath.classList.remove('_empty');
+        } else {
+            refs.activeTagName.textContent = EMPTY;
+            refs.tagPath.classList.add('_empty');
+        }
+
+        if (tagPath) {
+            refs.tagPath.textContent = tagPath;
+            refs.activeTagName.classList.remove('_empty');
+        } else {
+            refs.tagPath.textContent = EMPTY;
+            refs.activeTagName.classList.add('_empty');
+        }
+    }
+
+    onUploadFile = (e) => {
+        loadedPages = 0;
+        this.setState({
+            loading: true,
+            bboxByPage: {},
+        });
         let file = e.target.files[0];
         let reader = new FileReader();
 
-        reader.onload = this._onUploadEnd(file);
+        reader.onload = this.onUploadEnd(file);
 
         if (!file) {
             this.setState({
-                pdf: null
+                pdf: null,
+                loading: false,
             });
             return;
         }
         reader.readAsArrayBuffer(file);
     }
 
-    uploadPdf = () => {
-        uploadInputRef.click();
+    onUploadSctrictFile = (pdf) => {
+        loadedPages = 0;
+        this.setState({
+            loading: true,
+            bboxByPage: {},
+        });
+        this.onUploadEnd(pdf);
     }
 
-    _onUploadEnd = (pdf) => {
+    onUploadEnd = (pdf) => {
         document.getElementById('container').innerHTML = "";
 
         this.setState({
             numPages: null,
             pageNumber: 1,
-            pdf
+            pdf,
         })
-    }
-
-    _setRef(node) {
-        uploadInputRef = node;
-    }
-
-    setContainerRef(node) {
-        containerRef = node;
     }
 
     onError = (e) => {
         this.setState({
-           error: e.message
+            error: e.message,
+            loading: false,
         });
     }
 
     render() {
-        const { pageNumber, numPages, title } = this.state;
-
+        const { numPages, title, loading } = this.state;
         return (
-            <div className="App">
-                <header className="App-header">
-                    <button onClick={this.uploadPdf}>
-                        Upload other pdf
-                    </button>
-                    <input type='file' onChange={this.uploadFile.bind(this)} ref={this._setRef} style={{'display': 'none'}}/>
-                </header>
-                <article className="app-main-body">
-                    <div className="pdf-data">
-                        <p><b>Title: </b>{title}</p>
-                        <p><b>Number of pages: </b>{numPages}</p>
-                    </div>
+            <div className={`App ${loading ? '_loading' : ''}`}>
+                <Header onUploadFile={this.onUploadFile} onUploadSctrictFile={this.onUploadSctrictFile} loading={loading}/>
+                <main className="app-main-body">
                     <div className="pdf-wrapper">
                         <Document file={this.state.pdf}
                                   onLoadSuccess={this.onDocumentLoadSuccess}
@@ -298,17 +360,27 @@ class App extends React.Component {
                                   onLoadError={this.onError}
                                   error={<div className="error-msg">{this.state.error}</div> }
                         >
-                            {Pages({ pageNumber, numPages, onPageRenderSuccess: this.onPageRenderSuccess })}
+                            {this.getPages()}
                         </Document>
                     </div>
-                </article>
-                <div id="container" ref={this.setContainerRef}/>
+                </main>
+                <div id="container" ref={this.setRef('containerRef')}/>
                 <div id="tagInfo">
-                    <div>
-                        <span className="tag-info-title">Tag name: </span>{this.state.activeTagName}
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Document title</div>
+                        <div ref={this.setRef('activeTagName')} className={title ? '' : '_empty'}>{title || 'None'}</div>
                     </div>
-                    <div>
-                        <span className="tag-info-title">Tree path: </span>{this.state.tagPath}
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Number of pages</div>
+                        <div ref={this.setRef('activeTagName')}>{numPages}</div>
+                    </div>
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Tag name</div>
+                        <div ref={this.setRef('activeTagName')} className="_empty">None</div>
+                    </div>
+                    <div className="tag-prop">
+                        <div className="tag-info-title">Tree path</div>
+                        <div ref={this.setRef('tagPath')} className="_empty">None</div>
                     </div>
                 </div>
             </div>
