@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '580b8be';
+var pdfjsBuild = '40a4f08';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31081,20 +31081,70 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      function getTextBoundingBox(glyphs) {
+        var tx = 0;
+        var ty = 0;
+        glyphs.map(function (glyph) {
+          if ((0, _util.isNum)(glyph)) {
+            if (mcTextState.font.vertical) {
+              ty = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
+            } else {
+              tx = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
+            }
+
+            return;
+          }
+
+          var glyphWidth = null;
+
+          if (mcTextState.font.vertical && glyph.vmetric) {
+            glyphWidth = glyph.vmetric[0];
+          } else {
+            glyphWidth = glyph.width;
+          }
+
+          if (!mcTextState.font.vertical) {
+            var w0 = glyphWidth * mcTextState.fontMatrix[0];
+            tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing) * mcTextState.textHScale;
+          } else {
+            var w1 = glyphWidth * mcTextState.fontMatrix[0];
+            ty = w1 * mcTextState.fontSize + mcTextState.charSpacing;
+          }
+
+          mcTextState.translateTextMatrix(tx, ty);
+        });
+
+        if (mc_width < Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) {
+          mc_width = Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4]);
+        } else if (mc_width) {
+          if (mc_y === mcTextState.textLineMatrix[5]) {
+            mc_width += Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4]);
+          }
+        }
+
+        if (!mc_height) {
+          mc_height = mcTextState.textMatrix[3] * mcTextState.fontSize;
+        } else {
+          mc_height = Math.max(mc_y + mc_height, 2 * mcTextState.textLineMatrix[5] - mcTextState.textMatrix[5]) - Math.min(mc_y, mcTextState.textLineMatrix[5]);
+        }
+
+        if (!mc_x || mc_x > mcTextState.textLineMatrix[4]) {
+          mc_x = mcTextState.textLineMatrix[4];
+        }
+
+        if (!mc_y || mc_y > mcTextState.textLineMatrix[5]) {
+          mc_y = mcTextState.textLineMatrix[5];
+        }
+      }
+
       var positionByMCID = {};
-      var transformMatrix = [];
-      var fontMatrix = [];
-      var textMatrix = [];
       var mc_x = null,
           mc_width = null,
           mc_y = null,
           mc_height = null;
-      var width;
-      var moveText;
       var mcid = null;
-      var mc_font_size = 1;
-      var mc_line_width = 0;
-      var spaceWidth = 0;
+      var mcTextState = new TextState();
+      var tempMatrix;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31123,7 +31173,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           var args = operation.args;
           var fn = operation.fn;
-          var transformResult;
 
           switch (fn | 0) {
             case _util.OPS.transform:
@@ -31203,47 +31252,18 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setFont:
               var fontSize = args[1];
-              mc_font_size = args[1];
+              mcTextState.fontSize = args[1];
               next(self.handleSetFont(resources, args, null, operatorList, task, stateManager.state).then(function (translated) {
                 operatorList.addDependency(translated.loadedName);
-                fontMatrix = translated.font.fontMatrix;
-                spaceWidth = translated.font.spaceWidth;
+                mcTextState.fontMatrix = translated.font.fontMatrix;
+                mcTextState.font = translated.font;
                 operatorList.addOp(_util.OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
 
             case _util.OPS.setTextMatrix:
-              var matrix = _toConsumableArray(args);
-
-              if (mc_font_size) {
-                matrix[0] *= mc_font_size;
-                matrix[3] *= mc_font_size;
-              }
-
-              textMatrix = matrix;
-
-              if (!mc_x || mc_x > matrix[4]) {
-                mc_x = matrix[4];
-              }
-
-              var height = void 0;
-
-              if (mc_y && mc_height) {
-                height = Math.max(mc_y + mc_height, matrix[5] + matrix[0]) - Math.min(mc_y, matrix[5]);
-              } else {
-                height = matrix[0];
-              }
-
-              if (height > mc_height) {
-                mc_height = height;
-              }
-
-              if (!mc_y || mc_y > matrix[5]) {
-                mc_y = matrix[5];
-              }
-
-              transformMatrix = _util.Util.transform(fontMatrix, matrix);
-              mc_line_width = 0;
+              mcTextState.setTextMatrix.apply(mcTextState, _toConsumableArray(args));
+              mcTextState.setTextLineMatrix.apply(mcTextState, _toConsumableArray(args));
               break;
 
             case _util.OPS.endInlineImage:
@@ -31271,28 +31291,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
-
-              if (!mc_x && !mc_y) {
-                mc_x = textMatrix[4] + mc_line_width;
-                mc_y = textMatrix[5];
-              }
-
-              width = 0;
-              args[0].map(function (glyph) {
-                width += glyph.width;
-              });
-              width *= transformMatrix[0];
-
-              if (width > mc_width) {
-                mc_width = width;
-              }
-
-              mc_line_width += width;
-
-              if (mc_height === null) {
-                mc_height = textMatrix[3];
-              }
-
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.showSpacedText:
@@ -31313,62 +31312,47 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
               args[0] = combinedGlyphs;
               fn = _util.OPS.showText;
-
-              if (!mc_x && !mc_y) {
-                mc_x = textMatrix[4] + mc_line_width;
-                mc_y = textMatrix[5];
-              }
-
-              width = 0;
-              args[0].map(function (glyph) {
-                width += (glyph.width ? glyph.width : -glyph) * transformMatrix[0];
-              });
-              mc_line_width += width;
-
-              if (width > mc_width) {
-                mc_width = width;
-              }
-
-              if (mc_height === null) {
-                mc_height = textMatrix[3];
-              }
-
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.nextLine:
-              transformResult = _util.Util.applyTransform(moveText, textMatrix);
-              textMatrix[5] = transformResult[1];
-              mc_x = textMatrix[4];
-              mc_y = textMatrix[5];
-              mc_line_width = 0;
+              mcTextState.leading = -mcTextState.leading;
+              tempMatrix = _util.Util.applyTransform([0, -mcTextState.leading], mcTextState.textLineMatrix);
+              mcTextState.setTextMatrix(mcTextState.textMatrix[0], mcTextState.textMatrix[1], mcTextState.textMatrix[2], mcTextState.textMatrix[3], tempMatrix[0], tempMatrix[1]);
+              mcTextState.setTextLineMatrix.apply(mcTextState, _toConsumableArray(mcTextState.textMatrix));
+              break;
+
+            case _util.OPS.setCharSpacing:
+              mcTextState.charSpacing = args[0];
+              break;
+
+            case _util.OPS.setWordSpacing:
+              mcTextState.wordSpacing = args[0];
+              break;
+
+            case _util.OPS.setHScale:
+              mcTextState.textHScale = args[0];
+              break;
+
+            case _util.OPS.setLeading:
+              mcTextState.leading = args[0];
+              break;
+
+            case _util.OPS.setTextRise:
+              mcTextState.textRise = args[0];
               break;
 
             case _util.OPS.setLeadingMoveText:
+              mcTextState.leading = -args[1];
+              tempMatrix = _util.Util.applyTransform(args, mcTextState.textLineMatrix);
+              mcTextState.setTextMatrix(mcTextState.textMatrix[0], mcTextState.textMatrix[1], mcTextState.textMatrix[2], mcTextState.textMatrix[3], tempMatrix[0], tempMatrix[1]);
+              mcTextState.setTextLineMatrix.apply(mcTextState, _toConsumableArray(mcTextState.textMatrix));
+              break;
+
             case _util.OPS.moveText:
-              moveText = args;
-              transformResult = _util.Util.applyTransform(args, textMatrix);
-              textMatrix[4] = transformResult[0];
-              textMatrix[5] = transformResult[1];
-
-              if (mc_x !== null) {
-                if (textMatrix[4] < mc_x) {
-                  mc_width = mc_x + mc_width - textMatrix[5];
-                  mc_x = textMatrix[4];
-                }
-              } else {
-                mc_x = textMatrix[4];
-              }
-
-              if (mc_y !== null) {
-                if (textMatrix[5] < mc_y) {
-                  mc_height = mc_y + mc_height - textMatrix[5];
-                  mc_y = textMatrix[5];
-                }
-              } else {
-                mc_y = textMatrix[5];
-              }
-
-              mc_line_width = 0;
+              tempMatrix = _util.Util.applyTransform(args, mcTextState.textLineMatrix);
+              mcTextState.setTextMatrix(mcTextState.textMatrix[0], mcTextState.textMatrix[1], mcTextState.textMatrix[2], mcTextState.textMatrix[3], tempMatrix[0], tempMatrix[1]);
+              mcTextState.setTextLineMatrix.apply(mcTextState, _toConsumableArray(mcTextState.textMatrix));
               break;
 
             case _util.OPS.nextLineShowText:
