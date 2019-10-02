@@ -241,7 +241,7 @@ class App extends React.Component {
             return;
         }
 
-        let mcid = parseInt(bboxCoords.mcid);
+        /*let mcid = parseInt(bboxCoords.mcid);
         let { name, relatives, path } = this.getTagName(mcid);
         let tagRoleMapPath = '';
         let minX = 0;
@@ -266,15 +266,15 @@ class App extends React.Component {
 
         if (relatives.length) {
             ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
-        } else {
+        } else {*/
             ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
-        }
+        /*}
 
         if (this.state.roleMap[name]) {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));*/
     }
 
     fillDocData(tagName = null, tagPath = null) {
@@ -365,7 +365,7 @@ class App extends React.Component {
                     </div>
                 </main>
                 <div id="container" ref={this.setRef('containerRef')}/>
-                <div id="tagInfo">
+                <div id="tagInfo" style={{display: 'none'}}>
                     <div className="tag-prop">
                         <div className="tag-info-title">Document title</div>
                         <div ref={this.setRef('activeTagName')} className={title ? '' : '_empty'}>{title || 'None'}</div>
