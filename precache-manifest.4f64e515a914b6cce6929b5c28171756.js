@@ -4,7 +4,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/parse-pdf-demo/index.html"
   },
   {
-    "revision": "444a3359f3670421e1a82a783eda7dbc",
+    "revision": "3b76773538f12887a18a5be612cf97ba",
     "url": "/parse-pdf-demo/pdf.worker.js"
   },
   {
