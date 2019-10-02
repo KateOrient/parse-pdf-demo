@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'c34d77d';
+var pdfjsBuild = '135240b';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31368,6 +31368,11 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setTextRenderingMode:
               stateManager.state.textRenderingMode = args[0];
+              break;
+
+            case _util.OPS.beginText:
+              mcTextState.textMatrix = _util.IDENTITY_MATRIX.slice();
+              mcTextState.textLineMatrix = _util.IDENTITY_MATRIX.slice();
               break;
 
             case _util.OPS.setFillColorSpace:

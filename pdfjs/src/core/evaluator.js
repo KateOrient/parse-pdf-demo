@@ -1199,6 +1199,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               stateManager.state.textRenderingMode = args[0];
               break;
 
+            case OPS.beginText:
+              mcTextState.textMatrix = IDENTITY_MATRIX.slice();
+              mcTextState.textLineMatrix = IDENTITY_MATRIX.slice();
+              break;
             case OPS.setFillColorSpace:
               stateManager.state.fillColorSpace =
                 ColorSpace.parse(args[0], xref, resources,
