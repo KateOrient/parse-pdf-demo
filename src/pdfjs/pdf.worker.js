@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'c5f1e6a';
+var pdfjsBuild = 'c34d77d';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31084,6 +31084,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       function getTextBoundingBox(glyphs) {
         var tx = 0;
         var ty = 0;
+        var old_x_value = mc_x;
+
+        if (!mc_x || mc_x > mcTextState.textMatrix[4]) {
+          mc_x = mcTextState.textMatrix[4];
+        }
+
         glyphs.map(function (glyph) {
           if ((0, _util.isNum)(glyph)) {
             if (mcTextState.font.vertical) {
@@ -31114,20 +31120,16 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         });
 
-        if (mc_width && mc_x) {
-          mc_width = Math.max(mc_x + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(mc_x, mcTextState.textLineMatrix[4]);
+        if (mc_width && old_x_value) {
+          mc_width = Math.max(old_x_value + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value, mcTextState.textLineMatrix[4]);
         } else {
-          mc_width = Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4]);
+          mc_width = Math.abs(mc_x - mcTextState.textMatrix[4]);
         }
 
         if (!mc_height) {
           mc_height = mcTextState.textMatrix[3] * mcTextState.fontSize;
         } else {
           mc_height = Math.max(mc_y + mc_height, mcTextState.textLineMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize) - Math.min(mc_y, mcTextState.textLineMatrix[5]);
-        }
-
-        if (!mc_x || mc_x > mcTextState.textLineMatrix[4]) {
-          mc_x = mcTextState.textLineMatrix[4];
         }
 
         if (!mc_y || mc_y > mcTextState.textLineMatrix[5]) {
@@ -31173,10 +31175,13 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           switch (fn | 0) {
             case _util.OPS.transform:
-              mc_x = args[4];
-              mc_y = args[5];
-              mc_width = args[0];
-              mc_height = args[3];
+              if (!mc_x && !mc_y && !mc_width && !mc_height) {
+                mc_x = args[4];
+                mc_y = args[5];
+                mc_width = args[0];
+                mc_height = args[3];
+              }
+
               break;
 
             case _util.OPS.paintXObject:
