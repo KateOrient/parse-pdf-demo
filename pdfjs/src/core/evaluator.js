@@ -970,17 +970,18 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           }
           mcTextState.translateTextMatrix(tx, ty);
         });
-        if (mc_width < Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) {
+
+        if (mc_width && mc_x) {
+          mc_width = Math.max(mc_x + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) -
+            Math.min(mc_x, mcTextState.textLineMatrix[4]);
+        } else {
           mc_width = Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4]);
-        } else if (mc_width) {
-          if (mc_y === mcTextState.textLineMatrix[5]) {
-            mc_width += Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4]);
-          }
         }
         if (!mc_height) {
           mc_height = mcTextState.textMatrix[3] * mcTextState.fontSize;
         } else {
-          mc_height = Math.max(mc_y + mc_height, 2 * mcTextState.textLineMatrix[5] - mcTextState.textMatrix[5]) - Math.min(mc_y, mcTextState.textLineMatrix[5]);
+          mc_height = Math.max(mc_y + mc_height, mcTextState.textLineMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize) -
+            Math.min(mc_y, mcTextState.textLineMatrix[5]);
         }
         if (!mc_x || mc_x > mcTextState.textLineMatrix[4]) {
           mc_x = mcTextState.textLineMatrix[4];
@@ -994,7 +995,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = null;
       var mcTextState = new TextState();
-      var tempMatrix;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1019,7 +1019,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           }
           var args = operation.args;
           var fn = operation.fn;
-
           switch (fn | 0) {
             case OPS.transform:
               //image bbox
@@ -1153,17 +1152,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               getTextBoundingBox(args[0]);
               break;
             case OPS.nextLine:
-              mcTextState.leading = -mcTextState.leading;
-              tempMatrix = Util.applyTransform([0, -mcTextState.leading], mcTextState.textLineMatrix);
-              mcTextState.setTextMatrix(
-                mcTextState.textMatrix[0],
-                mcTextState.textMatrix[1],
-                mcTextState.textMatrix[2],
-                mcTextState.textMatrix[3],
-                tempMatrix[0],
-                tempMatrix[1]
-              );
-              mcTextState.setTextLineMatrix(...mcTextState.textMatrix);
+              mcTextState.carriageReturn();
               break;
             case OPS.setCharSpacing:
               mcTextState.charSpacing = args[0];
@@ -1182,28 +1171,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               break;
             case OPS.setLeadingMoveText:
               mcTextState.leading = -args[1];
-              tempMatrix = Util.applyTransform(args, mcTextState.textLineMatrix);
-              mcTextState.setTextMatrix(
-                mcTextState.textMatrix[0],
-                mcTextState.textMatrix[1],
-                mcTextState.textMatrix[2],
-                mcTextState.textMatrix[3],
-                tempMatrix[0],
-                tempMatrix[1]
-              );
-              mcTextState.setTextLineMatrix(...mcTextState.textMatrix);
+              mcTextState.translateTextLineMatrix(...args);
+              mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.moveText:
-              tempMatrix = Util.applyTransform(args, mcTextState.textLineMatrix);
-              mcTextState.setTextMatrix(
-                mcTextState.textMatrix[0],
-                mcTextState.textMatrix[1],
-                mcTextState.textMatrix[2],
-                mcTextState.textMatrix[3],
-                tempMatrix[0],
-                tempMatrix[1]
-              );
-              mcTextState.setTextLineMatrix(...mcTextState.textMatrix);
+              mcTextState.translateTextLineMatrix(...args);
+              mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.nextLineShowText:
               operatorList.addOp(OPS.nextLine);
