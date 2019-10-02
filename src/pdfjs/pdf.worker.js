@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'c34d77d';
+var pdfjsBuild = '90f3cfa';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
