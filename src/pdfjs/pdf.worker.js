@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '135240b';
+var pdfjsBuild = '097be96';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13178,27 +13178,47 @@ function () {
 
   _createClass(CatalogMain, [{
     key: "getTreeElement",
-    value: function getTreeElement(el) {
+    value: function getTreeElement(el, page) {
       var _this = this;
 
-      if (el.has && el.has('K')) {
-        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K')));
+      if ((0, _primitives.isDict)(el) && el.has('Pg')) {
+        var pageObj = el.get('Pg');
+        var pageRef = el.getRaw('Pg');
+        var allPages = pageObj.get('Parent').get('Kids');
+        var newPage = allPages.findIndex(function (el) {
+          return el.num === pageRef.num && el.gen === pageRef.gen;
+        });
+        newPage = newPage !== -1 ? newPage : null;
+
+        if (newPage !== page) {
+          page = newPage;
+        }
+      }
+
+      if ((0, _primitives.isDict)(el) && el.has('K')) {
+        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K'), page));
       }
 
       if (Array.isArray(el)) {
         return el.map(function (subel) {
           if (Number.isInteger(subel)) {
-            return subel;
+            return {
+              mcid: subel,
+              pageIndex: page
+            };
           } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
-            return _this.getTreeElement(subel);
+            return _this.getTreeElement(subel, page);
           } else {
-            return _this.getTreeElement(_this.xref.fetch(subel));
+            return _this.getTreeElement(_this.xref.fetch(subel, page));
           }
         });
       }
 
       if (Number.isInteger(el)) {
-        return el;
+        return {
+          mcid: el,
+          pageIndex: page
+        };
       }
     }
   }, {
