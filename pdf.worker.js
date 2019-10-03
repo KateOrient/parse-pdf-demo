@@ -13178,27 +13178,47 @@ function () {
 
   _createClass(CatalogMain, [{
     key: "getTreeElement",
-    value: function getTreeElement(el) {
+    value: function getTreeElement(el, page) {
       var _this = this;
 
-      if (el.has && el.has('K')) {
-        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K')));
+      if ((0, _primitives.isDict)(el) && el.has('Pg')) {
+        var pageObj = el.get('Pg');
+        var pageRef = el.getRaw('Pg');
+        var allPages = pageObj.get('Parent').get('Kids');
+        var newPage = allPages.findIndex(function (el) {
+          return el.num === pageRef.num && el.gen === pageRef.gen;
+        });
+        newPage = newPage !== -1 ? newPage : null;
+
+        if (newPage !== page) {
+          page = newPage;
+        }
+      }
+
+      if ((0, _primitives.isDict)(el) && el.has('K')) {
+        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K'), page));
       }
 
       if (Array.isArray(el)) {
         return el.map(function (subel) {
           if (Number.isInteger(subel)) {
-            return subel;
+            return {
+              mcid: subel,
+              pageIndex: page
+            };
           } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
-            return _this.getTreeElement(subel);
+            return _this.getTreeElement(subel, page);
           } else {
-            return _this.getTreeElement(_this.xref.fetch(subel));
+            return _this.getTreeElement(_this.xref.fetch(subel, page));
           }
         });
       }
 
       if (Number.isInteger(el)) {
-        return el;
+        return {
+          mcid: el,
+          pageIndex: page
+        };
       }
     }
   }, {
@@ -31090,38 +31110,38 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_x = mcTextState.textMatrix[4];
         }
 
-        glyphs.map(function (glyph) {
+        for (var i = 0; i < glyphs.length; i++) {
+          var glyph = glyphs[i];
+
           if ((0, _util.isNum)(glyph)) {
             if (mcTextState.font.vertical) {
               ty = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
             } else {
               tx = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
             }
-
-            return;
-          }
-
-          var glyphWidth = null;
-
-          if (mcTextState.font.vertical && glyph.vmetric) {
-            glyphWidth = glyph.vmetric[0];
           } else {
-            glyphWidth = glyph.width;
-          }
+            var glyphWidth = null;
 
-          if (!mcTextState.font.vertical) {
-            var w0 = glyphWidth * mcTextState.fontMatrix[0];
-            tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing) * mcTextState.textHScale;
-          } else {
-            var w1 = glyphWidth * mcTextState.fontMatrix[0];
-            ty = w1 * mcTextState.fontSize + mcTextState.charSpacing;
+            if (mcTextState.font.vertical && glyph.vmetric) {
+              glyphWidth = glyph.vmetric[0];
+            } else {
+              glyphWidth = glyph.width;
+            }
+
+            if (!mcTextState.font.vertical) {
+              var w0 = glyphWidth * mcTextState.fontMatrix[0];
+              tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) * mcTextState.textHScale;
+            } else {
+              var w1 = glyphWidth * mcTextState.fontMatrix[0];
+              ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
+            }
           }
 
           mcTextState.translateTextMatrix(tx, ty);
-        });
+        }
 
-        if (mc_width && old_x_value) {
-          mc_width = Math.max(old_x_value + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value, mcTextState.textLineMatrix[4]);
+        if (mc_width) {
+          mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value || mc_x, mcTextState.textLineMatrix[4]);
         } else {
           mc_width = Math.abs(mc_x - mcTextState.textMatrix[4]);
         }
@@ -31348,7 +31368,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.moveText:
-              mcTextState.translateTextLineMatrix.apply(mcTextState, _toConsumableArray(args));
+              var isSameTextLine = !mcTextState.font ? false : (mcTextState.font.vertical ? args[0] : args[1]) === 0;
+
+              if (isSameTextLine) {
+                mcTextState.translateTextLineMatrix(args[0], args[1]);
+                break;
+              }
+
+              mcTextState.translateTextLineMatrix(args[0], args[1]);
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
 
@@ -31368,6 +31395,11 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.setTextRenderingMode:
               stateManager.state.textRenderingMode = args[0];
+              break;
+
+            case _util.OPS.beginText:
+              mcTextState.textMatrix = _util.IDENTITY_MATRIX.slice();
+              mcTextState.textLineMatrix = _util.IDENTITY_MATRIX.slice();
               break;
 
             case _util.OPS.setFillColorSpace:
