@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '097be96';
+var pdfjsBuild = '0b9b5b8';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31110,38 +31110,38 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_x = mcTextState.textMatrix[4];
         }
 
-        glyphs.map(function (glyph) {
+        for (var i = 0; i < glyphs.length; i++) {
+          var glyph = glyphs[i];
+
           if ((0, _util.isNum)(glyph)) {
             if (mcTextState.font.vertical) {
               ty = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
             } else {
               tx = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
             }
-
-            return;
-          }
-
-          var glyphWidth = null;
-
-          if (mcTextState.font.vertical && glyph.vmetric) {
-            glyphWidth = glyph.vmetric[0];
           } else {
-            glyphWidth = glyph.width;
-          }
+            var glyphWidth = null;
 
-          if (!mcTextState.font.vertical) {
-            var w0 = glyphWidth * mcTextState.fontMatrix[0];
-            tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing) * mcTextState.textHScale;
-          } else {
-            var w1 = glyphWidth * mcTextState.fontMatrix[0];
-            ty = w1 * mcTextState.fontSize + mcTextState.charSpacing;
+            if (mcTextState.font.vertical && glyph.vmetric) {
+              glyphWidth = glyph.vmetric[0];
+            } else {
+              glyphWidth = glyph.width;
+            }
+
+            if (!mcTextState.font.vertical) {
+              var w0 = glyphWidth * mcTextState.fontMatrix[0];
+              tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) * mcTextState.textHScale;
+            } else {
+              var w1 = glyphWidth * mcTextState.fontMatrix[0];
+              ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
+            }
           }
 
           mcTextState.translateTextMatrix(tx, ty);
-        });
+        }
 
-        if (mc_width && old_x_value) {
-          mc_width = Math.max(old_x_value + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value, mcTextState.textLineMatrix[4]);
+        if (mc_width) {
+          mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value || mc_x, mcTextState.textLineMatrix[4]);
         } else {
           mc_width = Math.abs(mc_x - mcTextState.textMatrix[4]);
         }
@@ -31368,7 +31368,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.moveText:
-              mcTextState.translateTextLineMatrix.apply(mcTextState, _toConsumableArray(args));
+              var isSameTextLine = !mcTextState.font ? false : (mcTextState.font.vertical ? args[0] : args[1]) === 0;
+
+              if (isSameTextLine) {
+                mcTextState.translateTextLineMatrix(args[0], args[1]);
+                break;
+              }
+
+              mcTextState.translateTextLineMatrix(args[0], args[1]);
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
 
