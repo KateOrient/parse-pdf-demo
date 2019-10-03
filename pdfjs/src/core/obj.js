@@ -89,25 +89,35 @@ class CatalogMain {
     return shadow(this, 'structTreeRoot', structTreeRoot);
   }
 
-  getTreeElement(el) {
-    if (el.has && el.has('K')) {
+  getTreeElement(el, page) {
+    if (isDict(el) && el.has('Pg')) {
+      let pageObj = el.get('Pg');
+      let pageRef = el.getRaw('Pg');
+      let allPages = pageObj.get('Parent').get('Kids');
+      let newPage = allPages.findIndex(el => el.num === pageRef.num && el.gen === pageRef.gen);
+      newPage = newPage !== -1 ? newPage : null;
+      if (newPage !== page) {
+        page = newPage;
+      }
+    }
+    if (isDict(el) && el.has('K')) {
       return {
-        [el.get('S').name]: this.getTreeElement(el.get('K'))
+        [el.get('S').name]: this.getTreeElement(el.get('K'), page)
       }
     }
     if (Array.isArray(el)) {
       return el.map(subel => {
         if (Number.isInteger(subel)) {
-          return subel;
+          return {mcid: subel, pageIndex: page};
         } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
-          return this.getTreeElement(subel);
+          return this.getTreeElement(subel, page);
         } else {
-          return this.getTreeElement(this.xref.fetch(subel));
+          return this.getTreeElement(this.xref.fetch(subel, page));
         }
       })
     }
     if (Number.isInteger(el)) {
-      return el;
+      return {mcid: el, pageIndex: page};
     }
   }
 
