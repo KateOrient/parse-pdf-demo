@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '0b9b5b8';
+var pdfjsBuild = 'cec38bd';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31106,10 +31106,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var ty = 0;
         var old_x_value = mc_x;
 
-        if (!mc_x || mc_x > mcTextState.textMatrix[4]) {
-          mc_x = mcTextState.textMatrix[4];
-        }
-
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
 
@@ -31140,6 +31136,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         }
 
+        if (mc_x === null || mc_x > mcTextState.textLineMatrix[4]) {
+          mc_x = mcTextState.textLineMatrix[4];
+        }
+
         if (mc_width) {
           mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value || mc_x, mcTextState.textLineMatrix[4]);
         } else {
@@ -31152,7 +31152,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_height = Math.max(mc_y + mc_height, mcTextState.textLineMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize) - Math.min(mc_y, mcTextState.textLineMatrix[5]);
         }
 
-        if (!mc_y || mc_y > mcTextState.textLineMatrix[5]) {
+        if (mc_y === null || mc_y > mcTextState.textLineMatrix[5]) {
           mc_y = mcTextState.textLineMatrix[5];
         }
       }
@@ -31284,8 +31284,8 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               return;
 
             case _util.OPS.setTextMatrix:
-              mcTextState.setTextMatrix.apply(mcTextState, _toConsumableArray(args));
-              mcTextState.setTextLineMatrix.apply(mcTextState, _toConsumableArray(args));
+              mcTextState.setTextMatrix(args[0], args[1], args[2], args[3], args[4], args[5]);
+              mcTextState.setTextLineMatrix(args[0], args[1], args[2], args[3], args[4], args[5]);
               break;
 
             case _util.OPS.endInlineImage:
@@ -31368,13 +31368,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.moveText:
-              var isSameTextLine = !mcTextState.font ? false : (mcTextState.font.vertical ? args[0] : args[1]) === 0;
-
-              if (isSameTextLine) {
-                mcTextState.translateTextLineMatrix(args[0], args[1]);
-                break;
-              }
-
               mcTextState.translateTextLineMatrix(args[0], args[1]);
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
