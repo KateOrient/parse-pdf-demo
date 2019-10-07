@@ -145,7 +145,7 @@ class App extends React.Component {
         let page = 0;
         Object.keys(tagNode).forEach((nodeName) => {
             path = [nodeName];
-            if ((tagNode[nodeName].mcid || tagNode[nodeName].mcid === 0)
+            if (tagNode[nodeName] &&(tagNode[nodeName].mcid || tagNode[nodeName].mcid === 0)
                 && tagNode[nodeName].mcid === mcid
                 && tagNode[nodeName].pageIndex === pageIndex
             ) {
@@ -172,7 +172,7 @@ class App extends React.Component {
                         node = node.name;
                     }
                 }
-            } else if ((!tagNode[nodeName].mcid && tagNode[nodeName].mcid !== 0) || tagNode[nodeName] instanceof Object) {
+            } else if (tagNode[nodeName] && (!tagNode[nodeName].mcid && tagNode[nodeName].mcid !== 0) || tagNode[nodeName] instanceof Object) {
                 node = this.getTagName({mcid, tagNode: tagNode[nodeName], pageIndex});
                 relatives = node.relatives;
                 path = [...path, ...node.path];

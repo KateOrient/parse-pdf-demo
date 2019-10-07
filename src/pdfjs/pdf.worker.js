@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f51ab49';
+var pdfjsBuild = '81430f3';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31105,7 +31105,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
-        console.log('showText', mcid);
 
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
@@ -31163,7 +31162,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_width = null,
           mc_y = null,
           mc_height = null;
-      var mcid = null;
+      var mcid = [];
       var mcTextState = new TextState();
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
@@ -31193,7 +31192,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           var args = operation.args;
           var fn = operation.fn;
-          console.log(fn, args);
+          console.log('op', fn, args);
 
           switch (fn | 0) {
             case _util.OPS.transform:
@@ -31523,20 +31522,25 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.markPoint:
             case _util.OPS.markPointProps:
             case _util.OPS.beginMarkedContent:
+              mcid.push(null);
               continue;
 
             case _util.OPS.beginMarkedContentProps:
               if ((0, _primitives.isDict)(args[1]) && args[1].has('MCID')) {
-                mcid = args[1].get('MCID');
+                mc_x = mc_y = mc_width = mc_height = null;
+                mcid.push(args[1].get('MCID'));
+              } else {
+                mcid.push(null);
               }
 
               continue;
 
             case _util.OPS.endMarkedContent:
-              console.log('end', mcid, mc_x, mc_y, mc_width, mc_height);
+              var current_mcid = mcid.pop();
+              console.log('end', current_mcid);
 
-              if (Number.isInteger(mcid) && !positionByMCID[mcid]) {
-                positionByMCID[mcid] = {
+              if (Number.isInteger(current_mcid) && !positionByMCID[current_mcid]) {
+                positionByMCID[current_mcid] = {
                   x: mc_x,
                   y: mc_y,
                   width: mc_width,
@@ -31544,7 +31548,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 };
               }
 
-              mc_x = mc_y = mc_width = mc_height = null;
               continue;
 
             case _util.OPS.beginCompat:

@@ -999,7 +999,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
-      var mcid = null;
+      var mcid = [];
       var mcTextState = new TextState();
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
@@ -1320,17 +1320,21 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPoint:
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
+              mcid.push(null);
               continue;
             case OPS.beginMarkedContentProps:
               if (isDict(args[1]) && args[1].has('MCID')) {
-                mcid = args[1].get('MCID');
+                mc_x = mc_y = mc_width = mc_height = null;
+                mcid.push(args[1].get('MCID'));
+              } else {
+                mcid.push(null);
               }
               continue;
             case OPS.endMarkedContent:
-              if (Number.isInteger(mcid) && !positionByMCID[mcid]) {
-                positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
+              let current_mcid = mcid.pop();
+              if (Number.isInteger(current_mcid) && !positionByMCID[current_mcid]) {
+                positionByMCID[current_mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
               }
-              mc_x = mc_y = mc_width = mc_height = null;
               continue;
             case OPS.beginCompat:
             case OPS.endCompat:
