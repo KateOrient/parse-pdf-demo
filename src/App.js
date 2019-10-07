@@ -114,7 +114,7 @@ class App extends React.Component {
             pagesArray.push(
                 <PdfPage pageIndex={pageIndex}
                          onPageRenderSuccess={this.onPageRenderSuccess}
-                         key={`page-${pageIndex}`}
+                         key={"page-" + pageIndex}
                 />
             );
         }
@@ -126,6 +126,7 @@ class App extends React.Component {
      * Get tag name of hovered bbox
      * @param mcid {integer} id of bbox
      * @param tagNode {object} structure for searching
+     * @param pageIndex {integer} tough pageIndex prevent confusing of wrong tag with similar mcid
      *
      * @return {
      *      name {string} tag name
@@ -133,36 +134,49 @@ class App extends React.Component {
      *      path {string} path to component through structure tree
      * }
      */
-    getTagName(mcid, tagNode = this.state.structureTree) {
+    getTagName({mcid, tagNode, pageIndex}) {
+        if (!tagNode && tagNode !== 0) {
+            tagNode = {...this.state.structureTree};
+        }
+        pageIndex = parseInt(pageIndex);
         let node = '';
         let relatives = [];
         let path = [];
+        let page = 0;
         Object.keys(tagNode).forEach((nodeName) => {
             path = [nodeName];
-            if (tagNode[nodeName] === mcid) {
+            if (tagNode[nodeName] &&(tagNode[nodeName].mcid || tagNode[nodeName].mcid === 0)
+                && tagNode[nodeName].mcid === mcid
+                && tagNode[nodeName].pageIndex === pageIndex
+            ) {
                 node = nodeName;
+                page = tagNode[nodeName].pageIndex;
             } else if (tagNode[nodeName] instanceof Array) {
-                if (tagNode[nodeName].includes(mcid)) {
+                let mcidIndex = _.findIndex(tagNode[nodeName], {mcid, pageIndex});
+                if (mcidIndex > -1) {
                     node = nodeName;
+                    page = tagNode[nodeName][mcidIndex].pageIndex;
                     relatives = this.getRelatives(tagNode[nodeName]);
                 } else {
                     node = tagNode[nodeName].filter((nodeFromArray) => {
                         if (!nodeFromArray) {
                             return false;
                         }
-                        return !!this.getTagName(mcid, nodeFromArray).name;
+                        return !!this.getTagName({mcid, tagNode: nodeFromArray, pageIndex}).name;
                     })[0];
                     if (node) {
-                        node = this.getTagName(mcid, node);
+                        node = this.getTagName({mcid, tagNode: node, pageIndex});
                         relatives = node.relatives;
                         path = [...path, ...node.path];
+                        page = node.page;
                         node = node.name;
                     }
                 }
-            } else if (tagNode[nodeName] instanceof Object) {
-                node = this.getTagName(mcid, tagNode[nodeName]);
+            } else if (tagNode[nodeName] && (!tagNode[nodeName].mcid && tagNode[nodeName].mcid !== 0) || tagNode[nodeName] instanceof Object) {
+                node = this.getTagName({mcid, tagNode: tagNode[nodeName], pageIndex});
                 relatives = node.relatives;
                 path = [...path, ...node.path];
+                page = node.page;
                 node = node.name;
             }
         });
@@ -170,7 +184,8 @@ class App extends React.Component {
         return {
             name: node,
             relatives,
-            path
+            path,
+            page,
         };
     }
 
@@ -179,7 +194,7 @@ class App extends React.Component {
         let relatives = [];
         arrayOfRelatives.forEach((relative) => {
             if (!relative) return;
-            if (typeof relative === 'number') {
+            if (relative.mcid) {
                 relatives.push(relative);
             } else if (relative instanceof Array && relative.length) {
                 relatives = [
@@ -231,7 +246,8 @@ class App extends React.Component {
         let x = e.clientX - rect.left;
         let y = canvas.offsetHeight - (e.clientY - rect.top);
         let ctx = canvas.getContext('2d');
-        let bboxList = this.state.bboxByPage[canvas.getAttribute('data-page')];
+        let pageIndex = canvas.getAttribute('data-page');
+        let bboxList = this.state.bboxByPage[pageIndex];
 
         ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
         ctx.strokeStyle = 'red';
@@ -241,16 +257,17 @@ class App extends React.Component {
             return;
         }
 
-        /*let mcid = parseInt(bboxCoords.mcid);
-        let { name, relatives, path } = this.getTagName(mcid);
+        let mcid = parseInt(bboxCoords.mcid);
+        let { name, relatives, path, page } = this.getTagName({mcid, pageIndex});
         let tagRoleMapPath = '';
         let minX = 0;
         let maxX = 0;
         let minY = 0;
         let maxY = 0;
         delete relatives[mcid];
-        relatives.forEach((elementMcid, index) => {
-            let { x, y, width, height } = bboxList[elementMcid];
+        relatives.forEach(({mcid: elementMcid, pageIndex}, index) => {
+            if (pageIndex !== page || !bboxList[elementMcid]) return;
+            let {x, y, width, height} = bboxList[elementMcid];
             if (!index) {
                 minX = x;
                 maxX = x + width;
@@ -266,15 +283,15 @@ class App extends React.Component {
 
         if (relatives.length) {
             ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
-        } else {*/
+        } else {
             ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
-        /*}
+        }
 
         if (this.state.roleMap[name]) {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));*/
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
     }
 
     fillDocData(tagName = null, tagPath = null) {
