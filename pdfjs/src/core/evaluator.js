@@ -946,9 +946,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
-        if (!mc_x || mc_x > mcTextState.textMatrix[4]) {
-          mc_x = mcTextState.textMatrix[4];
-        }
+
         for (let i = 0; i < glyphs.length; i++) {
           let glyph = glyphs[i];
           if (isNum(glyph)) {
@@ -976,6 +974,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         }
 
+        if (mc_x === null || mc_x > mcTextState.textLineMatrix[4]) {
+          mc_x = mcTextState.textLineMatrix[4];
+        }
+
         if (mc_width) {
           mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) -
             Math.min((old_x_value || mc_x), mcTextState.textLineMatrix[4]);
@@ -990,14 +992,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             Math.min(mc_y, mcTextState.textLineMatrix[5]);
         }
 
-        if (!mc_y || mc_y > mcTextState.textLineMatrix[5]) {
+        if (mc_y === null || mc_y > mcTextState.textLineMatrix[5]) {
           mc_y = mcTextState.textLineMatrix[5];
         }
       }
 
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
-      var mcid = null;
+      var mcid = [];
       var mcTextState = new TextState();
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
@@ -1026,7 +1028,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           switch (fn | 0) {
             case OPS.transform:
               //image bbox
-              if (!mc_x && !mc_y && !mc_width && !mc_height) {
+              if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
                 mc_y = args[5];
                 mc_width = args[0];
@@ -1113,8 +1115,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }));
               return;
             case OPS.setTextMatrix:
-              mcTextState.setTextMatrix(...args);
-              mcTextState.setTextLineMatrix(...args);
+              mcTextState.setTextMatrix(args[0], args[1], args[2], args[3],
+                args[4], args[5]);
+              mcTextState.setTextLineMatrix(args[0], args[1], args[2], args[3],
+                args[4], args[5]);
               break;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
@@ -1181,13 +1185,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.moveText:
-              var isSameTextLine = !mcTextState.font ? false :
-                ((mcTextState.font.vertical ? args[0] : args[1]) === 0);
-              if (isSameTextLine ) {
-                mcTextState.translateTextLineMatrix(args[0], args[1]);
-                break;
-              }
-
               mcTextState.translateTextLineMatrix(args[0], args[1]);
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
@@ -1323,18 +1320,21 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPoint:
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
+              mcid.push(null);
               continue;
             case OPS.beginMarkedContentProps:
-              if (args[1].get) {
-                mcid = args[1].get('MCID');
+              if (isDict(args[1]) && args[1].has('MCID')) {
+                mc_x = mc_y = mc_width = mc_height = null;
+                mcid.push(args[1].get('MCID'));
+              } else {
+                mcid.push(null);
               }
               continue;
             case OPS.endMarkedContent:
-              if (Number.isInteger(mcid)) {
-                positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
+              let current_mcid = mcid.pop();
+              if (Number.isInteger(current_mcid) && !positionByMCID[current_mcid]) {
+                positionByMCID[current_mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
               }
-              mc_x = mc_y = mc_width = mc_height = null;
-              mcid = null;
               continue;
             case OPS.beginCompat:
             case OPS.endCompat:
