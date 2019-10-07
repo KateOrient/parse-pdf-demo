@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'cec38bd';
+var pdfjsBuild = 'f51ab49';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31105,6 +31105,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
+        console.log('showText', mcid);
 
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
@@ -31192,10 +31193,11 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           var args = operation.args;
           var fn = operation.fn;
+          console.log(fn, args);
 
           switch (fn | 0) {
             case _util.OPS.transform:
-              if (!mc_x && !mc_y && !mc_width && !mc_height) {
+              if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
                 mc_y = args[5];
                 mc_width = args[0];
@@ -31524,14 +31526,16 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               continue;
 
             case _util.OPS.beginMarkedContentProps:
-              if (args[1].get) {
+              if ((0, _primitives.isDict)(args[1]) && args[1].has('MCID')) {
                 mcid = args[1].get('MCID');
               }
 
               continue;
 
             case _util.OPS.endMarkedContent:
-              if (Number.isInteger(mcid)) {
+              console.log('end', mcid, mc_x, mc_y, mc_width, mc_height);
+
+              if (Number.isInteger(mcid) && !positionByMCID[mcid]) {
                 positionByMCID[mcid] = {
                   x: mc_x,
                   y: mc_y,
@@ -31541,7 +31545,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               }
 
               mc_x = mc_y = mc_width = mc_height = null;
-              mcid = null;
               continue;
 
             case _util.OPS.beginCompat:

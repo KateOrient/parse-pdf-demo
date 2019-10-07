@@ -1028,7 +1028,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           switch (fn | 0) {
             case OPS.transform:
               //image bbox
-              if (!mc_x && !mc_y && !mc_width && !mc_height) {
+              if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
                 mc_y = args[5];
                 mc_width = args[0];
@@ -1322,16 +1322,15 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.beginMarkedContent:
               continue;
             case OPS.beginMarkedContentProps:
-              if (args[1].get) {
+              if (isDict(args[1]) && args[1].has('MCID')) {
                 mcid = args[1].get('MCID');
               }
               continue;
             case OPS.endMarkedContent:
-              if (Number.isInteger(mcid)) {
+              if (Number.isInteger(mcid) && !positionByMCID[mcid]) {
                 positionByMCID[mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
               }
               mc_x = mc_y = mc_width = mc_height = null;
-              mcid = null;
               continue;
             case OPS.beginCompat:
             case OPS.endCompat:
