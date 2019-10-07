@@ -382,7 +382,7 @@ class App extends React.Component {
                     </div>
                 </main>
                 <div id="container" ref={this.setRef('containerRef')}/>
-                <div id="tagInfo" style={{display: 'none'}}>
+                <div id="tagInfo">
                     <div className="tag-prop">
                         <div className="tag-info-title">Document title</div>
                         <div ref={this.setRef('activeTagName')} className={title ? '' : '_empty'}>{title || 'None'}</div>
