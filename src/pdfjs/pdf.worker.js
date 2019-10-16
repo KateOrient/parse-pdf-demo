@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'd9e5f07';
+var pdfjsBuild = 'f15fa79';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13195,7 +13195,7 @@ function () {
       }
 
       if ((0, _primitives.isDict)(el) && el.has('K')) {
-        return _defineProperty({}, el.get('S').name, this.getTreeElement(el.get('K'), page));
+        return _defineProperty({}, (0, _util.stringToUTF8String)(el.get('S').name), this.getTreeElement(el.get('K'), page));
       }
 
       if (Array.isArray(el)) {
