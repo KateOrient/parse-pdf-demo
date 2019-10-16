@@ -101,7 +101,7 @@ class CatalogMain {
     }
     if (isDict(el) && el.has('K')) {
       return {
-        [el.get('S').name]: this.getTreeElement(el.get('K'), page)
+        [stringToUTF8String(el.get('S').name)]: this.getTreeElement(el.get('K'), page)
       }
     }
     if (Array.isArray(el)) {
