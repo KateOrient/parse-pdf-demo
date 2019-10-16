@@ -45,6 +45,7 @@ class CatalogMain {
     this.fontCache = new RefSetCache();
     this.builtInCMapCache = new Map();
     this.pageKidsCountCache = new RefSetCache();
+    this.pages = this.getPages(this.toplevelPagesDict.get('Kids'));
   }
 
   get metadata() {
@@ -91,10 +92,8 @@ class CatalogMain {
 
   getTreeElement(el, page) {
     if (isDict(el) && el.has('Pg')) {
-      let pageObj = el.get('Pg');
       let pageRef = el.getRaw('Pg');
-      let allPages = pageObj.get('Parent').get('Kids');
-      let newPage = allPages.findIndex(el => el.num === pageRef.num && el.gen === pageRef.gen);
+      let newPage = this.pages.findIndex(el => el.num === pageRef.num && el.gen === pageRef.gen);
       newPage = newPage !== -1 ? newPage : null;
       if (newPage !== page) {
         page = newPage;
@@ -119,6 +118,28 @@ class CatalogMain {
     if (Number.isInteger(el)) {
       return {mcid: el, pageIndex: page};
     }
+  }
+
+  getPages(pages) {
+    let pagesArray = [];
+    pages.map(kid => {
+      if (isRef(kid)){
+        let kidObj = this.xref.fetch(kid);
+        let kidObjType = kidObj.get('Type').name;
+        switch (kidObjType) {
+          case 'Page':
+            pagesArray.push(kid);
+            break;
+          case 'Pages':
+            let array = this.getPages(kidObj.get('Kids'));
+            pagesArray = pagesArray.concat(array);
+            break;
+          default:
+            break;
+        }
+      }
+    });
+    return pagesArray;
   }
 
   get structureTree() {

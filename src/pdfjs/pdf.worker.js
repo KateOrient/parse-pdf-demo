@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '81430f3';
+var pdfjsBuild = 'd9e5f07';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13174,6 +13174,7 @@ function () {
     this.fontCache = new _primitives.RefSetCache();
     this.builtInCMapCache = new Map();
     this.pageKidsCountCache = new _primitives.RefSetCache();
+    this.pages = this.getPages(this.toplevelPagesDict.get('Kids'));
   }
 
   _createClass(CatalogMain, [{
@@ -13182,10 +13183,8 @@ function () {
       var _this = this;
 
       if ((0, _primitives.isDict)(el) && el.has('Pg')) {
-        var pageObj = el.get('Pg');
         var pageRef = el.getRaw('Pg');
-        var allPages = pageObj.get('Parent').get('Kids');
-        var newPage = allPages.findIndex(function (el) {
+        var newPage = this.pages.findIndex(function (el) {
           return el.num === pageRef.num && el.gen === pageRef.gen;
         });
         newPage = newPage !== -1 ? newPage : null;
@@ -13220,6 +13219,36 @@ function () {
           pageIndex: page
         };
       }
+    }
+  }, {
+    key: "getPages",
+    value: function getPages(pages) {
+      var _this2 = this;
+
+      var pagesArray = [];
+      pages.map(function (kid) {
+        if ((0, _primitives.isRef)(kid)) {
+          var kidObj = _this2.xref.fetch(kid);
+
+          var kidObjType = kidObj.get('Type').name;
+
+          switch (kidObjType) {
+            case 'Page':
+              pagesArray.push(kid);
+              break;
+
+            case 'Pages':
+              var array = _this2.getPages(kidObj.get('Kids'));
+
+              pagesArray = pagesArray.concat(array);
+              break;
+
+            default:
+              break;
+          }
+        }
+      });
+      return pagesArray;
     }
   }, {
     key: "_readDocumentOutline",
@@ -13511,7 +13540,7 @@ function () {
   }, {
     key: "cleanup",
     value: function cleanup() {
-      var _this2 = this;
+      var _this3 = this;
 
       this.pageKidsCountCache.clear();
       var promises = [];
@@ -13524,9 +13553,9 @@ function () {
           delete font.translated;
         }
 
-        _this2.fontCache.clear();
+        _this3.fontCache.clear();
 
-        _this2.builtInCMapCache.clear();
+        _this3.builtInCMapCache.clear();
       });
     }
   }, {
@@ -15309,7 +15338,7 @@ var ObjectLoader = function () {
       return this.capability.promise;
     },
     _walk: function _walk(nodesToVisit) {
-      var _this3 = this;
+      var _this4 = this;
 
       var nodesToRevisit = [];
       var pendingRequests = [];
@@ -15368,11 +15397,11 @@ var ObjectLoader = function () {
             var node = nodesToRevisit[_i4];
 
             if ((0, _primitives.isRef)(node)) {
-              _this3.refSet.remove(node);
+              _this4.refSet.remove(node);
             }
           }
 
-          _this3._walk(nodesToRevisit);
+          _this4._walk(nodesToRevisit);
         }, this.capability.reject);
         return;
       }
@@ -15392,19 +15421,19 @@ function (_CatalogMain) {
   _inherits(Catalog, _CatalogMain);
 
   function Catalog(pdfManager, xref) {
-    var _this4;
+    var _this5;
 
     _classCallCheck(this, Catalog);
 
-    _this4 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
-    _this4.structure = _this4.xref.root.get('StructTreeRoot');
+    _this5 = _possibleConstructorReturn(this, _getPrototypeOf(Catalog).call(this, pdfManager, xref));
+    _this5.structure = _this5.xref.root.get('StructTreeRoot');
 
-    if (_this4.structure) {
-      _this4.ClassMap = _this4._getClassMap();
-      _this4.RoleMap = _this4._getRoleMap();
+    if (_this5.structure) {
+      _this5.ClassMap = _this5._getClassMap();
+      _this5.RoleMap = _this5._getRoleMap();
     }
 
-    return _this4;
+    return _this5;
   }
 
   _createClass(Catalog, [{
@@ -15445,7 +15474,7 @@ function (_CatalogMain) {
   }, {
     key: "_convertDict",
     value: function _convertDict(dict) {
-      var _this5 = this;
+      var _this6 = this;
 
       var objectToReturn = {};
       var keysArray = dict.getKeys();
@@ -15453,7 +15482,7 @@ function (_CatalogMain) {
         var keyValue = dict.get(key);
 
         if ((0, _primitives.isDict)(keyValue)) {
-          objectToReturn[key] = _this5._convertDict(keyValue);
+          objectToReturn[key] = _this6._convertDict(keyValue);
         } else {
           objectToReturn[key] = keyValue;
         }
@@ -31192,7 +31221,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
           var args = operation.args;
           var fn = operation.fn;
-          console.log('op', fn, args);
 
           switch (fn | 0) {
             case _util.OPS.transform:
@@ -31537,7 +31565,6 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
             case _util.OPS.endMarkedContent:
               var current_mcid = mcid.pop();
-              console.log('end', current_mcid);
 
               if (Number.isInteger(current_mcid) && !positionByMCID[current_mcid]) {
                 positionByMCID[current_mcid] = {
