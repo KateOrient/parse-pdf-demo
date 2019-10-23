@@ -1029,8 +1029,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
       function clearGraphicsBoundingBox() {
         //Clear moveTo state after it's closed
-        mcGraphicsState.move_x = null;
-        mcGraphicsState.move_y = null;
+        mcGraphicsState[mcGraphicsState.length - 1].move_x = null;
+        mcGraphicsState[mcGraphicsState.length - 1].move_y = null;
       }
 
       function getRectBoundingBox(x, y, w, h) {
@@ -1105,8 +1105,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
 
         //Next line will start from the end of current line
-        state.move_x = x;
-        state.move_y = y;
+        mcGraphicsState[mcGraphicsState.length - 1].move_x = x;
+        mcGraphicsState[mcGraphicsState.length - 1].move_y = y;
       }
 
       var positionByMCID = {};
@@ -1164,7 +1164,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               clearGraphicsBoundingBox();
               break;
             case OPS.transform:
-              mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState.ctm, args);
+              mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
               //image bbox
               /*if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];

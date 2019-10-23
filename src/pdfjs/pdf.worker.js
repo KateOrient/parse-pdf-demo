@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'd6f9a6f';
+var pdfjsBuild = 'b79fffe';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31223,8 +31223,8 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }
 
       function clearGraphicsBoundingBox() {
-        mcGraphicsState.move_x = null;
-        mcGraphicsState.move_y = null;
+        mcGraphicsState[mcGraphicsState.length - 1].move_x = null;
+        mcGraphicsState[mcGraphicsState.length - 1].move_y = null;
       }
 
       function getRectBoundingBox(x, y, w, h) {
@@ -31314,8 +31314,8 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           state.y = Math.min(y, state.move_y, state.y);
         }
 
-        state.move_x = x;
-        state.move_y = y;
+        mcGraphicsState[mcGraphicsState.length - 1].move_x = x;
+        mcGraphicsState[mcGraphicsState.length - 1].move_y = y;
       }
 
       var positionByMCID = {};
@@ -31403,7 +31403,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.transform:
-              mcGraphicsState[mcGraphicsState.length - 1].ctm = _util.Util.transform(mcGraphicsState.ctm, args);
+              mcGraphicsState[mcGraphicsState.length - 1].ctm = _util.Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
               break;
 
             case _util.OPS.paintXObject:
