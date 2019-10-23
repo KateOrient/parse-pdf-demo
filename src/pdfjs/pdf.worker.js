@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '5379315';
+var pdfjsBuild = 'd6f9a6f';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31195,28 +31195,30 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }
 
       function saveGraphicsBoundingBox() {
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+
         if (mc_width === null) {
-          mc_width = mcGraphicsState.w;
+          mc_width = state.w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w) - Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_width = Math.max(mc_x + mc_width, state.x, state.x + state.w) - Math.min(mc_x, state.x, state.x + state.w);
         }
 
         if (mc_height === null) {
-          mc_height = mcGraphicsState.h;
+          mc_height = state.h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h) - Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_height = Math.max(mc_y + mc_height, state.y, state.y + state.h) - Math.min(mc_y, state.y, state.y + state.h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_x = Math.min(state.x, state.x + state.w);
         } else {
-          mc_x = Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_x = Math.min(mc_x, state.x, state.x + state.w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_y = Math.min(state.y, state.y + state.h);
         } else {
-          mc_y = Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_y = Math.min(mc_y, state.y, state.y + state.h);
         }
       }
 
@@ -31226,22 +31228,24 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       }
 
       function getRectBoundingBox(x, y, w, h) {
-        var _Util$applyTransform = _util.Util.applyTransform([x, y], mcGraphicsState.ctm),
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        var _Util$applyTransform = _util.Util.applyTransform([x, y], state.ctm),
             _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
             x1 = _Util$applyTransform2[0],
             y1 = _Util$applyTransform2[1];
 
-        var _Util$applyTransform3 = _util.Util.applyTransform([x + w, y], mcGraphicsState.ctm),
+        var _Util$applyTransform3 = _util.Util.applyTransform([x + w, y], state.ctm),
             _Util$applyTransform4 = _slicedToArray(_Util$applyTransform3, 2),
             x2 = _Util$applyTransform4[0],
             y2 = _Util$applyTransform4[1];
 
-        var _Util$applyTransform5 = _util.Util.applyTransform([x, y + h], mcGraphicsState.ctm),
+        var _Util$applyTransform5 = _util.Util.applyTransform([x, y + h], state.ctm),
             _Util$applyTransform6 = _slicedToArray(_Util$applyTransform5, 2),
             x3 = _Util$applyTransform6[0],
             y3 = _Util$applyTransform6[1];
 
-        var _Util$applyTransform7 = _util.Util.applyTransform([x + w, y + h], mcGraphicsState.ctm),
+        var _Util$applyTransform7 = _util.Util.applyTransform([x + w, y + h], state.ctm),
             _Util$applyTransform8 = _slicedToArray(_Util$applyTransform7, 2),
             x4 = _Util$applyTransform8[0],
             y4 = _Util$applyTransform8[1];
@@ -31251,65 +31255,67 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         w = Math.max(x1, x2, x3, x4) - x;
         h = Math.max(y1, y2, y3, y4) - y;
 
-        if (mcGraphicsState.w === null) {
-          mcGraphicsState.w = Math.abs(w);
+        if (state.w === null) {
+          state.w = Math.abs(w);
         } else {
-          mcGraphicsState.w = Math.max(mcGraphicsState.x + mcGraphicsState.w, x, x + w) - Math.min(mcGraphicsState.x, x, x + w);
+          state.w = Math.max(state.x + state.w, x, x + w) - Math.min(state.x, x, x + w);
         }
 
-        if (mcGraphicsState.h === null) {
-          mcGraphicsState.h = Math.abs(h);
+        if (state.h === null) {
+          state.h = Math.abs(h);
         } else {
-          mcGraphicsState.h = Math.max(mcGraphicsState.y + mcGraphicsState.h, y, y + h) - Math.min(mcGraphicsState.y, y, y + h);
+          state.h = Math.max(state.y + state.h, y, y + h) - Math.min(state.y, y, y + h);
         }
 
-        if (mcGraphicsState.x === null) {
-          mcGraphicsState.x = Math.min(x, x + w);
+        if (state.x === null) {
+          state.x = Math.min(x, x + w);
         } else {
-          mcGraphicsState.x = Math.min(mcGraphicsState.x, x, x + w);
+          state.x = Math.min(state.x, x, x + w);
         }
 
-        if (mcGraphicsState.y === null) {
-          mcGraphicsState.y = Math.min(y, y + h);
+        if (state.y === null) {
+          state.y = Math.min(y, y + h);
         } else {
-          mcGraphicsState.y = Math.min(mcGraphicsState.y, y, y + h);
+          state.y = Math.min(state.y, y, y + h);
         }
       }
 
       function getLineBoundingBox(x, y) {
-        var _Util$applyTransform9 = _util.Util.applyTransform([x, y], mcGraphicsState.ctm);
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        var _Util$applyTransform9 = _util.Util.applyTransform([x, y], state.ctm);
 
         var _Util$applyTransform10 = _slicedToArray(_Util$applyTransform9, 2);
 
         x = _Util$applyTransform10[0];
         y = _Util$applyTransform10[1];
 
-        if (mcGraphicsState.w === null) {
-          mcGraphicsState.w = Math.abs(x - mcGraphicsState.move_x);
+        if (state.w === null) {
+          state.w = Math.abs(x - state.move_x);
         } else {
-          mcGraphicsState.w = Math.max(x, mcGraphicsState.move_x, mcGraphicsState.x + mcGraphicsState.w) - Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
+          state.w = Math.max(x, state.move_x, state.x + state.w) - Math.min(x, state.move_x, state.x);
         }
 
-        if (mcGraphicsState.h === null) {
-          mcGraphicsState.h = Math.abs(y - mcGraphicsState.move_y);
+        if (state.h === null) {
+          state.h = Math.abs(y - state.move_y);
         } else {
-          mcGraphicsState.h = Math.max(y, mcGraphicsState.move_y, mcGraphicsState.y + mcGraphicsState.h) - Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
+          state.h = Math.max(y, state.move_y, state.y + state.h) - Math.min(y, state.move_y, state.y);
         }
 
-        if (mcGraphicsState.x === null) {
-          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x);
+        if (state.x === null) {
+          state.x = Math.min(x, state.move_x);
         } else {
-          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
+          state.x = Math.min(x, state.move_x, state.x);
         }
 
-        if (mcGraphicsState.y === null) {
-          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y);
+        if (state.y === null) {
+          state.y = Math.min(y, state.move_y);
         } else {
-          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
+          state.y = Math.min(y, state.move_y, state.y);
         }
 
-        mcGraphicsState.move_x = x;
-        mcGraphicsState.move_y = y;
+        state.move_x = x;
+        state.move_y = y;
       }
 
       var positionByMCID = {};
@@ -31319,7 +31325,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsState = {
+      var mcGraphicsState = [{
         x: null,
         y: null,
         w: null,
@@ -31327,7 +31333,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         move_x: null,
         move_y: null,
         ctm: _util.IDENTITY_MATRIX.slice()
-      };
+      }];
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31358,6 +31364,25 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           var fn = operation.fn;
 
           switch (fn | 0) {
+            case _util.OPS.restore:
+              if (mcGraphicsState.length !== 1) {
+                mcGraphicsState.pop();
+              }
+
+              break;
+
+            case _util.OPS.save:
+              mcGraphicsState.push({
+                x: null,
+                y: null,
+                w: null,
+                h: null,
+                move_x: null,
+                move_y: null,
+                ctm: _util.IDENTITY_MATRIX.slice()
+              });
+              break;
+
             case _util.OPS.fill:
             case _util.OPS.eoFill:
             case _util.OPS.eoFillStroke:
@@ -31378,7 +31403,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.transform:
-              mcGraphicsState.ctm = _util.Util.transform(mcGraphicsState.ctm, args);
+              mcGraphicsState[mcGraphicsState.length - 1].ctm = _util.Util.transform(mcGraphicsState.ctm, args);
               break;
 
             case _util.OPS.paintXObject:
@@ -31683,14 +31708,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               return;
 
             case _util.OPS.moveTo:
-              var ctm = mcGraphicsState.ctm.slice();
+              var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm.slice();
 
               var _Util$applyTransform11 = _util.Util.applyTransform(args, ctm);
 
               var _Util$applyTransform12 = _slicedToArray(_Util$applyTransform11, 2);
 
-              mcGraphicsState.move_x = _Util$applyTransform12[0];
-              mcGraphicsState.move_y = _Util$applyTransform12[1];
+              mcGraphicsState[mcGraphicsState.length - 1].move_x = _Util$applyTransform12[0];
+              mcGraphicsState[mcGraphicsState.length - 1].move_y = _Util$applyTransform12[1];
               self.buildPath(operatorList, fn, args);
               continue;
 

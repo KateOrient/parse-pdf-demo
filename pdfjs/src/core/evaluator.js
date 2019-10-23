@@ -998,30 +998,32 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       }
 
       function saveGraphicsBoundingBox() {
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+
         if (mc_width === null) {
-          mc_width = mcGraphicsState.w;
+          mc_width = state.w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w) -
-            Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_width = Math.max(mc_x + mc_width, state.x, state.x + state.w) -
+            Math.min(mc_x, state.x, state.x + state.w);
         }
 
         if (mc_height === null) {
-          mc_height = mcGraphicsState.h;
+          mc_height = state.h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h) -
-            Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_height = Math.max(mc_y + mc_height, state.y, state.y + state.h) -
+            Math.min(mc_y, state.y, state.y + state.h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_x = Math.min(state.x, state.x + state.w);
         } else {
-          mc_x = Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
+          mc_x = Math.min(mc_x, state.x, state.x + state.w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_y = Math.min(state.y, state.y + state.h);
         } else {
-          mc_y = Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
+          mc_y = Math.min(mc_y, state.y, state.y + state.h);
         }
       }
 
@@ -1032,82 +1034,86 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       }
 
       function getRectBoundingBox(x, y, w, h) {
-        let [x1, y1] = Util.applyTransform([x, y], mcGraphicsState.ctm);
-        let [x2, y2] = Util.applyTransform([x + w, y], mcGraphicsState.ctm);
-        let [x3, y3] = Util.applyTransform([x, y + h], mcGraphicsState.ctm);
-        let [x4, y4] = Util.applyTransform([x + w, y + h], mcGraphicsState.ctm);
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        let [x1, y1] = Util.applyTransform([x, y], state.ctm);
+        let [x2, y2] = Util.applyTransform([x + w, y], state.ctm);
+        let [x3, y3] = Util.applyTransform([x, y + h], state.ctm);
+        let [x4, y4] = Util.applyTransform([x + w, y + h], state.ctm);
 
         x = Math.min(x1, x2, x3, x4);
         y = Math.min(y1, y2, y3, y4);
         w = Math.max(x1, x2, x3, x4) - x;
         h = Math.max(y1, y2, y3, y4) - y;
 
-        if (mcGraphicsState.w === null) {
-          mcGraphicsState.w = Math.abs(w);
+        if (state.w === null) {
+          state.w = Math.abs(w);
         } else {
-          mcGraphicsState.w = Math.max(mcGraphicsState.x + mcGraphicsState.w, x, x + w) -
-            Math.min(mcGraphicsState.x, x, x + w);
+          state.w = Math.max(state.x + state.w, x, x + w) -
+            Math.min(state.x, x, x + w);
         }
 
-        if (mcGraphicsState.h === null) {
-          mcGraphicsState.h = Math.abs(h);
+        if (state.h === null) {
+          state.h = Math.abs(h);
         } else {
-          mcGraphicsState.h = Math.max(mcGraphicsState.y + mcGraphicsState.h, y, y + h) -
-            Math.min(mcGraphicsState.y, y, y + h);
+          state.h = Math.max(state.y + state.h, y, y + h) -
+            Math.min(state.y, y, y + h);
         }
 
-        if (mcGraphicsState.x === null) {
-          mcGraphicsState.x = Math.min(x, x + w);
+        if (state.x === null) {
+          state.x = Math.min(x, x + w);
         } else {
-          mcGraphicsState.x = Math.min(mcGraphicsState.x, x, x + w);
+          state.x = Math.min(state.x, x, x + w);
         }
 
-        if (mcGraphicsState.y === null) {
-          mcGraphicsState.y = Math.min(y, y + h);
+        if (state.y === null) {
+          state.y = Math.min(y, y + h);
         } else {
-          mcGraphicsState.y = Math.min(mcGraphicsState.y, y, y + h);
+          state.y = Math.min(state.y, y, y + h);
         }
       }
 
       function getLineBoundingBox(x, y) {
-        [x, y] = Util.applyTransform([x, y], mcGraphicsState.ctm);
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        if (mcGraphicsState.w === null) {
-          mcGraphicsState.w = Math.abs(x - mcGraphicsState.move_x);
+        [x, y] = Util.applyTransform([x, y], state.ctm);
+
+        if (state.w === null) {
+          state.w = Math.abs(x - state.move_x);
         } else {
-          mcGraphicsState.w = Math.max(x, mcGraphicsState.move_x, mcGraphicsState.x + mcGraphicsState.w) -
-            Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
+          state.w = Math.max(x, state.move_x, state.x + state.w) -
+            Math.min(x, state.move_x, state.x);
         }
 
-        if (mcGraphicsState.h === null) {
-          mcGraphicsState.h = Math.abs(y - mcGraphicsState.move_y);
+        if (state.h === null) {
+          state.h = Math.abs(y - state.move_y);
         } else {
-          mcGraphicsState.h = Math.max(y, mcGraphicsState.move_y, mcGraphicsState.y + mcGraphicsState.h) -
-            Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
+          state.h = Math.max(y, state.move_y, state.y + state.h) -
+            Math.min(y, state.move_y, state.y);
         }
 
-        if (mcGraphicsState.x === null) {
-          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x);
+        if (state.x === null) {
+          state.x = Math.min(x, state.move_x);
         } else {
-          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
+          state.x = Math.min(x, state.move_x, state.x);
         }
 
-        if (mcGraphicsState.y === null) {
-          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y);
+        if (state.y === null) {
+          state.y = Math.min(y, state.move_y);
         } else {
-          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
+          state.y = Math.min(y, state.move_y, state.y);
         }
 
         //Next line will start from the end of current line
-        mcGraphicsState.move_x = x;
-        mcGraphicsState.move_y = y;
+        state.move_x = x;
+        state.move_y = y;
       }
 
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsState = {x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()};
+      var mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()}];
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1133,6 +1139,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
           switch (fn | 0) {
+            case OPS.restore:
+              if (mcGraphicsState.length !== 1) {
+                mcGraphicsState.pop();
+              }
+              break;
+            case OPS.save:
+              mcGraphicsState.push({x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()});
+              break;
             case OPS.fill:
             case OPS.eoFill:
             case OPS.eoFillStroke:
@@ -1150,7 +1164,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               clearGraphicsBoundingBox();
               break;
             case OPS.transform:
-              mcGraphicsState.ctm = Util.transform(mcGraphicsState.ctm, args);
+              mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState.ctm, args);
               //image bbox
               /*if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
@@ -1431,8 +1445,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 stateManager));
               return;
             case OPS.moveTo:
-              let ctm = mcGraphicsState.ctm.slice();
-              [mcGraphicsState.move_x, mcGraphicsState.move_y] = Util.applyTransform(args, ctm);
+              let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm.slice();
+              [mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y] = Util.applyTransform(args, ctm);
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.lineTo:
