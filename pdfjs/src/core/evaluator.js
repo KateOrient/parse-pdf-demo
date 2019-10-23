@@ -999,99 +999,115 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
       function saveGraphicsBoundingBox() {
         if (mc_width === null) {
-          mc_width = mcGraphicsBbox.w;
+          mc_width = mcGraphicsState.w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w) -
-            Math.min(mc_x, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+          mc_width = Math.max(mc_x + mc_width, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w) -
+            Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
         }
 
         if (mc_height === null) {
-          mc_height = mcGraphicsBbox.h;
+          mc_height = mcGraphicsState.h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h) -
-            Math.min(mc_y, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+          mc_height = Math.max(mc_y + mc_height, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h) -
+            Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+          mc_x = Math.min(mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
         } else {
-          mc_x = Math.min(mc_x, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+          mc_x = Math.min(mc_x, mcGraphicsState.x, mcGraphicsState.x + mcGraphicsState.w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+          mc_y = Math.min(mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
         } else {
-          mc_y = Math.min(mc_y, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+          mc_y = Math.min(mc_y, mcGraphicsState.y, mcGraphicsState.y + mcGraphicsState.h);
         }
       }
 
       function clearGraphicsBoundingBox() {
-        mcGraphicsBbox = {x: null, y: null, w: null, h: null, move_x: null, move_y: null};
+        //Clear moveTo state after it's closed
+        mcGraphicsState.move_x = null;
+        mcGraphicsState.move_y = null;
       }
 
       function getRectBoundingBox(x, y, w, h) {
-        if (mcGraphicsBbox.w === null) {
-          mcGraphicsBbox.w = Math.abs(w);
+        let [x1, y1] = Util.applyTransform([x, y], mcGraphicsState.ctm);
+        let [x2, y2] = Util.applyTransform([x + w, y], mcGraphicsState.ctm);
+        let [x3, y3] = Util.applyTransform([x, y + h], mcGraphicsState.ctm);
+        let [x4, y4] = Util.applyTransform([x + w, y + h], mcGraphicsState.ctm);
+
+        x = Math.min(x1, x2, x3, x4);
+        y = Math.min(y1, y2, y3, y4);
+        w = Math.max(x1, x2, x3, x4) - x;
+        h = Math.max(y1, y2, y3, y4) - y;
+
+        if (mcGraphicsState.w === null) {
+          mcGraphicsState.w = Math.abs(w);
         } else {
-          mcGraphicsBbox.w = Math.max(mcGraphicsBbox.x + mcGraphicsBbox.w, x, x + w) -
-            Math.min(mcGraphicsBbox.x, x, x + w);
+          mcGraphicsState.w = Math.max(mcGraphicsState.x + mcGraphicsState.w, x, x + w) -
+            Math.min(mcGraphicsState.x, x, x + w);
         }
 
-        if (mcGraphicsBbox.h === null) {
-          mcGraphicsBbox.h = Math.abs(h);
+        if (mcGraphicsState.h === null) {
+          mcGraphicsState.h = Math.abs(h);
         } else {
-          mcGraphicsBbox.h = Math.max(mcGraphicsBbox.y + mcGraphicsBbox.h, y, y + h) -
-            Math.min(mcGraphicsBbox.y, y, y + h);
+          mcGraphicsState.h = Math.max(mcGraphicsState.y + mcGraphicsState.h, y, y + h) -
+            Math.min(mcGraphicsState.y, y, y + h);
         }
 
-        if (mcGraphicsBbox.x === null) {
-          mcGraphicsBbox.x = Math.min(x, x + w);
+        if (mcGraphicsState.x === null) {
+          mcGraphicsState.x = Math.min(x, x + w);
         } else {
-          mcGraphicsBbox.x = Math.min(mcGraphicsBbox.x, x, x + w);
+          mcGraphicsState.x = Math.min(mcGraphicsState.x, x, x + w);
         }
 
-        if (mcGraphicsBbox.y === null) {
-          mcGraphicsBbox.y = Math.min(y, y + h);
+        if (mcGraphicsState.y === null) {
+          mcGraphicsState.y = Math.min(y, y + h);
         } else {
-          mcGraphicsBbox.y = Math.min(mcGraphicsBbox.y, y, y + h);
+          mcGraphicsState.y = Math.min(mcGraphicsState.y, y, y + h);
         }
-        console.log(mcGraphicsBbox);
       }
 
       function getLineBoundingBox(x, y) {
-        if (mcGraphicsBbox.w === null) {
-          mcGraphicsBbox.w = Math.abs(x - mcGraphicsBbox.move_x);
+        [x, y] = Util.applyTransform([x, y], mcGraphicsState.ctm);
+
+        if (mcGraphicsState.w === null) {
+          mcGraphicsState.w = Math.abs(x - mcGraphicsState.move_x);
         } else {
-          mcGraphicsBbox.w = Math.max(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x + mcGraphicsBbox.w) -
-            Math.min(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x);
+          mcGraphicsState.w = Math.max(x, mcGraphicsState.move_x, mcGraphicsState.x + mcGraphicsState.w) -
+            Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
         }
 
-        if (mcGraphicsBbox.h === null) {
-          mcGraphicsBbox.h = Math.abs(y - mcGraphicsBbox.move_y);
+        if (mcGraphicsState.h === null) {
+          mcGraphicsState.h = Math.abs(y - mcGraphicsState.move_y);
         } else {
-          mcGraphicsBbox.h = Math.max(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y + mcGraphicsBbox.h) -
-            Math.min(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y);
+          mcGraphicsState.h = Math.max(y, mcGraphicsState.move_y, mcGraphicsState.y + mcGraphicsState.h) -
+            Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
         }
 
-        if (mcGraphicsBbox.x === null) {
-          mcGraphicsBbox.x = Math.min(x, mcGraphicsBbox.move_x);
+        if (mcGraphicsState.x === null) {
+          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x);
         } else {
-          mcGraphicsBbox.x = Math.min(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x);
+          mcGraphicsState.x = Math.min(x, mcGraphicsState.move_x, mcGraphicsState.x);
         }
 
-        if (mcGraphicsBbox.y === null) {
-          mcGraphicsBbox.y = Math.min(y, mcGraphicsBbox.move_y);
+        if (mcGraphicsState.y === null) {
+          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y);
         } else {
-          mcGraphicsBbox.y = Math.min(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y);
+          mcGraphicsState.y = Math.min(y, mcGraphicsState.move_y, mcGraphicsState.y);
         }
-        console.log(mcGraphicsBbox);
+
+        //Next line will start from the end of current line
+        mcGraphicsState.move_x = x;
+        mcGraphicsState.move_y = y;
       }
 
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsBbox = {x: null, y: null, w: null, h: null, move_x: null, move_y: null};
+      var mcGraphicsState = {x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()};
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1117,6 +1133,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
           switch (fn | 0) {
+            case OPS.fill:
+            case OPS.eoFill:
             case OPS.eoFillStroke:
             case OPS.fillStroke:
             case OPS.stroke:
@@ -1132,13 +1150,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               clearGraphicsBoundingBox();
               break;
             case OPS.transform:
+              mcGraphicsState.ctm = Util.transform(mcGraphicsState.ctm, args);
               //image bbox
-              if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
+              /*if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
                 mc_y = args[5];
                 mc_width = args[0];
                 mc_height = args[3];
-              }
+              }*/
               break;
             case OPS.paintXObject:
               // eagerly compile XForm objects
@@ -1412,8 +1431,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 stateManager));
               return;
             case OPS.moveTo:
-              mcGraphicsBbox.move_x = args[0];
-              mcGraphicsBbox.move_y = args[1];
+              let ctm = mcGraphicsState.ctm.slice();
+              [mcGraphicsState.move_x, mcGraphicsState.move_y] = Util.applyTransform(args, ctm);
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.lineTo:
@@ -1423,7 +1442,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.curveTo:
             case OPS.curveTo2:
             case OPS.curveTo3:
+              self.buildPath(operatorList, fn, args);
+              continue;
             case OPS.closePath:
+              clearGraphicsBoundingBox();
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.rectangle:

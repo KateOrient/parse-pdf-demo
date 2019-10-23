@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'da0b5f0';
+var pdfjsBuild = '5379315';
 
 var pdfjsSharedUtil = __w_pdfjs_require__(1);
 
@@ -12213,7 +12213,7 @@ var InternalRenderTask = function InternalRenderTaskClosure() {
 
 var version = '2.1.266';
 exports.version = version;
-var build = 'da0b5f0';
+var build = '5379315';
 exports.build = build;
 
 /***/ }),
