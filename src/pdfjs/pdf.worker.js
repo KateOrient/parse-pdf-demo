@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f15fa79';
+var pdfjsBuild = 'da0b5f0';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31186,6 +31186,99 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      function saveGraphicsBoundingBox() {
+        if (mc_width === null) {
+          mc_width = mcGraphicsBbox.w;
+        } else {
+          mc_width = Math.max(mc_x + mc_width, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w) - Math.min(mc_x, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+        }
+
+        if (mc_height === null) {
+          mc_height = mcGraphicsBbox.h;
+        } else {
+          mc_height = Math.max(mc_y + mc_height, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h) - Math.min(mc_y, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+        }
+
+        if (mc_x === null) {
+          mc_x = Math.min(mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+        } else {
+          mc_x = Math.min(mc_x, mcGraphicsBbox.x, mcGraphicsBbox.x + mcGraphicsBbox.w);
+        }
+
+        if (mc_y === null) {
+          mc_y = Math.min(mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+        } else {
+          mc_y = Math.min(mc_y, mcGraphicsBbox.y, mcGraphicsBbox.y + mcGraphicsBbox.h);
+        }
+      }
+
+      function clearGraphicsBoundingBox() {
+        mcGraphicsBbox = {
+          x: null,
+          y: null,
+          w: null,
+          h: null,
+          move_x: null,
+          move_y: null
+        };
+      }
+
+      function getRectBoundingBox(x, y, w, h) {
+        if (mcGraphicsBbox.w === null) {
+          mcGraphicsBbox.w = Math.abs(w);
+        } else {
+          mcGraphicsBbox.w = Math.max(mcGraphicsBbox.x + mcGraphicsBbox.w, x, x + w) - Math.min(mcGraphicsBbox.x, x, x + w);
+        }
+
+        if (mcGraphicsBbox.h === null) {
+          mcGraphicsBbox.h = Math.abs(h);
+        } else {
+          mcGraphicsBbox.h = Math.max(mcGraphicsBbox.y + mcGraphicsBbox.h, y, y + h) - Math.min(mcGraphicsBbox.y, y, y + h);
+        }
+
+        if (mcGraphicsBbox.x === null) {
+          mcGraphicsBbox.x = Math.min(x, x + w);
+        } else {
+          mcGraphicsBbox.x = Math.min(mcGraphicsBbox.x, x, x + w);
+        }
+
+        if (mcGraphicsBbox.y === null) {
+          mcGraphicsBbox.y = Math.min(y, y + h);
+        } else {
+          mcGraphicsBbox.y = Math.min(mcGraphicsBbox.y, y, y + h);
+        }
+
+        console.log(mcGraphicsBbox);
+      }
+
+      function getLineBoundingBox(x, y) {
+        if (mcGraphicsBbox.w === null) {
+          mcGraphicsBbox.w = Math.abs(x - mcGraphicsBbox.move_x);
+        } else {
+          mcGraphicsBbox.w = Math.max(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x + mcGraphicsBbox.w) - Math.min(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x);
+        }
+
+        if (mcGraphicsBbox.h === null) {
+          mcGraphicsBbox.h = Math.abs(y - mcGraphicsBbox.move_y);
+        } else {
+          mcGraphicsBbox.h = Math.max(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y + mcGraphicsBbox.h) - Math.min(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y);
+        }
+
+        if (mcGraphicsBbox.x === null) {
+          mcGraphicsBbox.x = Math.min(x, mcGraphicsBbox.move_x);
+        } else {
+          mcGraphicsBbox.x = Math.min(x, mcGraphicsBbox.move_x, mcGraphicsBbox.x);
+        }
+
+        if (mcGraphicsBbox.y === null) {
+          mcGraphicsBbox.y = Math.min(y, mcGraphicsBbox.move_y);
+        } else {
+          mcGraphicsBbox.y = Math.min(y, mcGraphicsBbox.move_y, mcGraphicsBbox.y);
+        }
+
+        console.log(mcGraphicsBbox);
+      }
+
       var positionByMCID = {};
       var mc_x = null,
           mc_width = null,
@@ -31193,6 +31286,14 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
+      var mcGraphicsBbox = {
+        x: null,
+        y: null,
+        w: null,
+        h: null,
+        move_x: null,
+        move_y: null
+      };
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31223,6 +31324,23 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           var fn = operation.fn;
 
           switch (fn | 0) {
+            case _util.OPS.eoFillStroke:
+            case _util.OPS.fillStroke:
+            case _util.OPS.stroke:
+              saveGraphicsBoundingBox();
+              break;
+
+            case _util.OPS.closeEOFillStroke:
+            case _util.OPS.closeFillStroke:
+            case _util.OPS.closeStroke:
+              saveGraphicsBoundingBox();
+              clearGraphicsBoundingBox();
+              break;
+
+            case _util.OPS.endPath:
+              clearGraphicsBoundingBox();
+              break;
+
             case _util.OPS.transform:
               if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
                 mc_x = args[4];
@@ -31535,7 +31653,16 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               return;
 
             case _util.OPS.moveTo:
+              mcGraphicsBbox.move_x = args[0];
+              mcGraphicsBbox.move_y = args[1];
+              self.buildPath(operatorList, fn, args);
+              continue;
+
             case _util.OPS.lineTo:
+              getLineBoundingBox(args[0], args[1]);
+              self.buildPath(operatorList, fn, args);
+              continue;
+
             case _util.OPS.curveTo:
             case _util.OPS.curveTo2:
             case _util.OPS.curveTo3:
@@ -31544,6 +31671,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               continue;
 
             case _util.OPS.rectangle:
+              getRectBoundingBox(args[0], args[1], args[2], args[3]);
               self.buildPath(operatorList, fn, args);
               continue;
 
