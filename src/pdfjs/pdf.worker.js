@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '97fac4d';
+var pdfjsBuild = '8c3ff7b';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31330,6 +31330,8 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         if (sqrt >= 0 && Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
           root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+        } else if (Math.abs(a + 3 * c - 3 * b - d) < 0.000000001) {
+          root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
         if (root_1 !== null && (root_1 < 0 || root_1 > 1)) {
@@ -31826,7 +31828,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               continue;
 
             case _util.OPS.curveTo2:
+              getCurveBoundingBox(mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3], args[2], args[3]);
+              self.buildPath(operatorList, fn, args);
+              continue;
+
             case _util.OPS.curveTo3:
+              getCurveBoundingBox(mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3]);
               self.buildPath(operatorList, fn, args);
               continue;
 

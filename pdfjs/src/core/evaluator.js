@@ -1125,6 +1125,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         if (sqrt >= 0 && Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
           root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+        } else if (Math.abs(a + 3 * c - 3 * b - d) < 0.000000001) {
+          root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
         //We are only interested in roots that lay in range from 0 to 1
@@ -1243,7 +1245,15 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               saveGraphicsBoundingBox();
               break;
             case OPS.endPath:
-              mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: 0, move_y: 0, ctm: IDENTITY_MATRIX.slice()}];
+              mcGraphicsState = [{
+                x: null,
+                y: null,
+                w: null,
+                h: null,
+                move_x: 0,
+                move_y: 0,
+                ctm: IDENTITY_MATRIX.slice()
+              }];
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
@@ -1549,7 +1559,29 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.curveTo2:
+              getCurveBoundingBox(
+                mcGraphicsState[mcGraphicsState.length - 1].move_x,
+                mcGraphicsState[mcGraphicsState.length - 1].move_y,
+                args[0],
+                args[1],
+                args[2],
+                args[3],
+                args[2],
+                args[3]
+              );
+              self.buildPath(operatorList, fn, args);
+              continue;
             case OPS.curveTo3:
+              getCurveBoundingBox(
+                mcGraphicsState[mcGraphicsState.length - 1].move_x,
+                mcGraphicsState[mcGraphicsState.length - 1].move_y,
+                mcGraphicsState[mcGraphicsState.length - 1].move_x,
+                mcGraphicsState[mcGraphicsState.length - 1].move_y,
+                args[0],
+                args[1],
+                args[2],
+                args[3]
+              );
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.closePath:
