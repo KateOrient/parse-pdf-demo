@@ -1027,12 +1027,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
-      function clearGraphicsBoundingBox() {
-        //Clear moveTo state after it's closed
-        mcGraphicsState[mcGraphicsState.length - 1].move_x = null;
-        mcGraphicsState[mcGraphicsState.length - 1].move_y = null;
-      }
-
       function getRectBoundingBox(x, y, w, h) {
         let state = mcGraphicsState[mcGraphicsState.length - 1];
 
@@ -1105,15 +1099,106 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
 
         //Next line will start from the end of current line
-        mcGraphicsState[mcGraphicsState.length - 1].move_x = x;
-        mcGraphicsState[mcGraphicsState.length - 1].move_y = y;
+        state.move_x = x;
+        state.move_y = y;
+      }
+
+      function getCurve(a, b, c, d) {
+        return function curve(t) {
+          return Math.pow(1 - t, 3) * a + 3 * t * Math.pow(1 - t, 2) * b + 3 * t * t * (1 - t) * c + t * t * t * d;
+        }
+      }
+
+      //Equate the derivative to zero in order to find local extremum and solve the equation
+      function getCurveRoots(a, b, c, d) {
+        let sqrt;
+        let root_1;
+        let root_2;
+
+        sqrt = Math.pow(6 * a - 12 * b + 6 * c, 2)
+          - 4 * (3 * b - 3 * a) * (-3 * a + 9 * b - 9 * c + 3 * d);
+        root_1 = null;
+        root_2 = null;
+
+        //Count roots if equation has roots and they are real
+        //Equation has infinite roots if denominator is too small
+        if (sqrt >= 0 && Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+          root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+          root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+        }
+
+        //We are only interested in roots that lay in range from 0 to 1
+        //Ignore other ones
+        if (root_1 !== null && (root_1 < 0 || root_1 > 1)) {
+          root_1 = null;
+        }
+        if (root_2 !== null && (root_2 < 0 || root_2 > 1)) {
+          root_2 = null;
+        }
+
+        return [root_1, root_2];
+      }
+
+      function getCurveBoundingBox(x0, y0, x1, y1, x2, y2, x3, y3) {
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        [x1, y1] = Util.applyTransform([x1, y1], state.ctm);
+        [x2, y2] = Util.applyTransform([x2, y2], state.ctm);
+        [x3, y3] = Util.applyTransform([x3, y3], state.ctm);
+
+        let curveX = getCurve(x0, x1, x2, x3);
+        let curveY = getCurve(y0, y1, y2, y3);
+
+        let [root_1, root_2] = getCurveRoots(x0, x1, x2, x3);
+
+        let minX = Math.min(x0, x3, root_1 !== null ? curveX(root_1) : Number.MAX_VALUE, root_2 !== null ? curveX(root_2) : Number.MAX_VALUE);
+        let maxX = Math.max(x0, x3, root_1 !== null ? curveX(root_1) : Number.MIN_VALUE, root_2 !== null ? curveX(root_2) : Number.MIN_VALUE);
+
+        [root_1, root_2] = getCurveRoots(y0, y1, y2, y3);
+
+        let minY = Math.min(y0, y3, root_1 !== null ? curveY(root_1) : Number.MAX_VALUE, root_2 !== null ? curveY(root_2) : Number.MAX_VALUE);
+        let maxY = Math.max(y0, y3, root_1 !== null ? curveY(root_1) : Number.MIN_VALUE, root_2 !== null ? curveY(root_2) : Number.MIN_VALUE);
+
+        let x = minX;
+        let y = minY;
+        let h = maxY - minY;
+        let w = maxX - minX;
+
+        if (state.w === null) {
+          state.w = Math.abs(w);
+        } else {
+          state.w = Math.max(state.x + state.w, x, x + w) -
+            Math.min(state.x, x, x + w);
+        }
+
+        if (state.h === null) {
+          state.h = Math.abs(h);
+        } else {
+          state.h = Math.max(state.y + state.h, y, y + h) -
+            Math.min(state.y, y, y + h);
+        }
+
+        if (state.x === null) {
+          state.x = Math.min(x, x + w);
+        } else {
+          state.x = Math.min(state.x, x, x + w);
+        }
+
+        if (state.y === null) {
+          state.y = Math.min(y, y + h);
+        } else {
+          state.y = Math.min(state.y, y, y + h);
+        }
+
+        state.move_x = x;
+        state.move_y = y;
       }
 
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()}];
+      var mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: 0, move_y: 0, ctm: IDENTITY_MATRIX.slice()}];
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1145,23 +1230,20 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
               break;
             case OPS.save:
-              mcGraphicsState.push({x: null, y: null, w: null, h: null, move_x: null, move_y: null, ctm: IDENTITY_MATRIX.slice()});
+              mcGraphicsState.push(JSON.parse(JSON.stringify(mcGraphicsState[mcGraphicsState.length - 1])));
               break;
             case OPS.fill:
             case OPS.eoFill:
             case OPS.eoFillStroke:
             case OPS.fillStroke:
             case OPS.stroke:
-              saveGraphicsBoundingBox();
-              break;
             case OPS.closeEOFillStroke:
             case OPS.closeFillStroke:
             case OPS.closeStroke:
               saveGraphicsBoundingBox();
-              clearGraphicsBoundingBox();
               break;
             case OPS.endPath:
-              clearGraphicsBoundingBox();
+              mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: 0, move_y: 0, ctm: IDENTITY_MATRIX.slice()}];
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
@@ -1454,12 +1536,23 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.curveTo:
+              getCurveBoundingBox(
+                mcGraphicsState[mcGraphicsState.length - 1].move_x,
+                mcGraphicsState[mcGraphicsState.length - 1].move_y,
+                args[0],
+                args[1],
+                args[2],
+                args[3],
+                args[4],
+                args[5],
+              );
+              self.buildPath(operatorList, fn, args);
+              continue;
             case OPS.curveTo2:
             case OPS.curveTo3:
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.closePath:
-              clearGraphicsBoundingBox();
               self.buildPath(operatorList, fn, args);
               continue;
             case OPS.rectangle:
@@ -1469,13 +1562,22 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.markPoint:
             case OPS.markPointProps:
             case OPS.beginMarkedContent:
+              //Marked content forms the scope
               mcid.push(null);
               continue;
             case OPS.beginMarkedContentProps:
               if (isDict(args[1]) && args[1].has('MCID')) {
                 mc_x = mc_y = mc_width = mc_height = null;
+
+                //Clear graphics bounding box to split graphics in different marked content
+                mcGraphicsState[mcGraphicsState.length - 1].x = null;
+                mcGraphicsState[mcGraphicsState.length - 1].y = null;
+                mcGraphicsState[mcGraphicsState.length - 1].w = null;
+                mcGraphicsState[mcGraphicsState.length - 1].h = null;
+
                 mcid.push(args[1].get('MCID'));
               } else {
+                //Marked content with no MCID still forms the scope
                 mcid.push(null);
               }
               continue;
@@ -2195,8 +2297,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           // According to table 114 if the encoding is a named encoding it must be
           // one of these predefined encodings.
           if ((baseEncodingName !== 'MacRomanEncoding' &&
-            baseEncodingName !== 'MacExpertEncoding' &&
-            baseEncodingName !== 'WinAnsiEncoding')) {
+              baseEncodingName !== 'MacExpertEncoding' &&
+              baseEncodingName !== 'WinAnsiEncoding')) {
             baseEncodingName = null;
           }
         }
@@ -2356,13 +2458,13 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       // descendant CIDFont uses the Adobe-GB1, Adobe-CNS1, Adobe-Japan1, or
       // Adobe-Korea1 character collection:
       if (properties.composite && (
-        (properties.cMap.builtInCMap &&
-          !(properties.cMap instanceof IdentityCMap)) ||
-        (properties.cidSystemInfo.registry === 'Adobe' &&
-          (properties.cidSystemInfo.ordering === 'GB1' ||
-            properties.cidSystemInfo.ordering === 'CNS1' ||
-            properties.cidSystemInfo.ordering === 'Japan1' ||
-            properties.cidSystemInfo.ordering === 'Korea1')))) {
+          (properties.cMap.builtInCMap &&
+            !(properties.cMap instanceof IdentityCMap)) ||
+          (properties.cidSystemInfo.registry === 'Adobe' &&
+            (properties.cidSystemInfo.ordering === 'GB1' ||
+              properties.cidSystemInfo.ordering === 'CNS1' ||
+              properties.cidSystemInfo.ordering === 'Japan1' ||
+              properties.cidSystemInfo.ordering === 'Korea1')))) {
         // Then:
         // a) Map the character code to a character identifier (CID) according
         // to the font’s CMap.
