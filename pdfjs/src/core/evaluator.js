@@ -1198,6 +1198,19 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         state.move_y = y;
       }
 
+      function getImageBoundingBox() {
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+        let [x0, y0] = Util.applyTransform([0, 0], state.ctm);
+        let [x1, y1] = Util.applyTransform([0, 1], state.ctm);
+        let [x2, y2] = Util.applyTransform([1, 1], state.ctm);
+        let [x3, y3] = Util.applyTransform([1, 0], state.ctm);
+
+        state.x = Math.min(x0, x1, x2, x3);
+        state.y = Math.min(y0, y1, y2, y3);
+        state.w = Math.max(x0, x1, x2, x3) - state.x;
+        state.h = Math.max(y0, y1, y2, y3) - state.y;
+      }
+
       var positionByMCID = {};
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
@@ -1259,13 +1272,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
-              //image bbox
-              /*if (mc_x === null && mc_y === null && mc_width === null && mc_height === null) {
-                mc_x = args[4];
-                mc_y = args[5];
-                mc_width = args[0];
-                mc_height = args[3];
-              }*/
               break;
             case OPS.paintXObject:
               // eagerly compile XForm objects
@@ -1305,6 +1311,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                   }, rejectXObject);
                   return;
                 } else if (type.name === 'Image') {
+                  getImageBoundingBox();
+                  saveGraphicsBoundingBox();
                   self.buildPaintImageXObject({
                     resources,
                     image: xobj,

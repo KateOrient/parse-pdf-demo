@@ -71,7 +71,7 @@ class App extends React.Component {
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = { ...this.state.bboxByPage };
             bboxByPage[page.pageIndex] = positionData;
-            //console.log('Data:', positionData);
+            console.log('Data:', positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
@@ -257,7 +257,9 @@ class App extends React.Component {
             return;
         }
 
-        let mcid = parseInt(bboxCoords.mcid);
+        ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
+
+        /*let mcid = parseInt(bboxCoords.mcid);
         let { name, relatives, path, page } = this.getTagName({mcid, pageIndex});
         let tagRoleMapPath = '';
         let minX = 0;
@@ -291,7 +293,7 @@ class App extends React.Component {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));*/
     }
 
     fillDocData(tagName = null, tagPath = null) {

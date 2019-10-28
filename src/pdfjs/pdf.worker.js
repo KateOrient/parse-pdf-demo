@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '2e31b79';
+var pdfjsBuild = 'b18fa3e';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31422,6 +31422,35 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         state.move_y = y;
       }
 
+      function getImageBoundingBox() {
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        var _Util$applyTransform17 = _util.Util.applyTransform([0, 0], state.ctm),
+            _Util$applyTransform18 = _slicedToArray(_Util$applyTransform17, 2),
+            x0 = _Util$applyTransform18[0],
+            y0 = _Util$applyTransform18[1];
+
+        var _Util$applyTransform19 = _util.Util.applyTransform([0, 1], state.ctm),
+            _Util$applyTransform20 = _slicedToArray(_Util$applyTransform19, 2),
+            x1 = _Util$applyTransform20[0],
+            y1 = _Util$applyTransform20[1];
+
+        var _Util$applyTransform21 = _util.Util.applyTransform([1, 1], state.ctm),
+            _Util$applyTransform22 = _slicedToArray(_Util$applyTransform21, 2),
+            x2 = _Util$applyTransform22[0],
+            y2 = _Util$applyTransform22[1];
+
+        var _Util$applyTransform23 = _util.Util.applyTransform([1, 0], state.ctm),
+            _Util$applyTransform24 = _slicedToArray(_Util$applyTransform23, 2),
+            x3 = _Util$applyTransform24[0],
+            y3 = _Util$applyTransform24[1];
+
+        state.x = Math.min(x0, x1, x2, x3);
+        state.y = Math.min(y0, y1, y2, y3);
+        state.w = Math.max(x0, x1, x2, x3) - state.x;
+        state.h = Math.max(y0, y1, y2, y3) - state.y;
+      }
+
       var positionByMCID = {};
       var mc_x = null,
           mc_width = null,
@@ -31546,6 +31575,8 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                   }, rejectXObject);
                   return;
                 } else if (type.name === 'Image') {
+                  getImageBoundingBox();
+                  saveGraphicsBoundingBox();
                   self.buildPaintImageXObject({
                     resources: resources,
                     image: xobj,
@@ -31810,12 +31841,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.moveTo:
               var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm.slice();
 
-              var _Util$applyTransform17 = _util.Util.applyTransform(args, ctm);
+              var _Util$applyTransform25 = _util.Util.applyTransform(args, ctm);
 
-              var _Util$applyTransform18 = _slicedToArray(_Util$applyTransform17, 2);
+              var _Util$applyTransform26 = _slicedToArray(_Util$applyTransform25, 2);
 
-              mcGraphicsState[mcGraphicsState.length - 1].move_x = _Util$applyTransform18[0];
-              mcGraphicsState[mcGraphicsState.length - 1].move_y = _Util$applyTransform18[1];
+              mcGraphicsState[mcGraphicsState.length - 1].move_x = _Util$applyTransform26[0];
+              mcGraphicsState[mcGraphicsState.length - 1].move_y = _Util$applyTransform26[1];
               self.buildPath(operatorList, fn, args);
               continue;
 
