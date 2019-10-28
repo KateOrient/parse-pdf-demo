@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '8c3ff7b';
+var pdfjsBuild = '2e31b79';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31327,10 +31327,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         root_1 = null;
         root_2 = null;
 
-        if (sqrt >= 0 && Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
-          root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-          root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-        } else if (Math.abs(a + 3 * c - 3 * b - d) < 0.000000001) {
+        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+          if (sqrt >= 0) {
+            root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+            root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+          }
+        } else {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 

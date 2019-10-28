@@ -1122,10 +1122,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
         //Count roots if equation has roots and they are real
         //Equation has infinite roots if denominator is too small
-        if (sqrt >= 0 && Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
-          root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-          root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-        } else if (Math.abs(a + 3 * c - 3 * b - d) < 0.000000001) {
+        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+          if (sqrt >= 0) {
+            root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+            root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
+          }
+        } else {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
