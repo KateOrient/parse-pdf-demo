@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/parse-pdf-demo/static/css/main.c604976c.chunk.css",
-    "main.js": "/parse-pdf-demo/static/js/main.9a43149d.chunk.js",
-    "main.js.map": "/parse-pdf-demo/static/js/main.9a43149d.chunk.js.map",
+    "main.js": "/parse-pdf-demo/static/js/main.f4eca711.chunk.js",
+    "main.js.map": "/parse-pdf-demo/static/js/main.f4eca711.chunk.js.map",
     "runtime~main.js": "/parse-pdf-demo/static/js/runtime~main.8a3ff88d.js",
     "runtime~main.js.map": "/parse-pdf-demo/static/js/runtime~main.8a3ff88d.js.map",
     "static/css/2.c83c8d54.chunk.css": "/parse-pdf-demo/static/css/2.c83c8d54.chunk.css",
-    "static/js/2.c0a4d97c.chunk.js": "/parse-pdf-demo/static/js/2.c0a4d97c.chunk.js",
-    "static/js/2.c0a4d97c.chunk.js.map": "/parse-pdf-demo/static/js/2.c0a4d97c.chunk.js.map",
+    "static/js/2.206518e3.chunk.js": "/parse-pdf-demo/static/js/2.206518e3.chunk.js",
+    "static/js/2.206518e3.chunk.js.map": "/parse-pdf-demo/static/js/2.206518e3.chunk.js.map",
     "index.html": "/parse-pdf-demo/index.html",
     "pdf.worker.js": "/parse-pdf-demo/pdf.worker.js",
-    "precache-manifest.9f2dad15e39c1e0f10da929d40423373.js": "/parse-pdf-demo/precache-manifest.9f2dad15e39c1e0f10da929d40423373.js",
+    "precache-manifest.cf4617a2e8bb9bd85c3dae37682fac46.js": "/parse-pdf-demo/precache-manifest.cf4617a2e8bb9bd85c3dae37682fac46.js",
     "service-worker.js": "/parse-pdf-demo/service-worker.js",
     "static/css/2.c83c8d54.chunk.css.map": "/parse-pdf-demo/static/css/2.c83c8d54.chunk.css.map",
     "static/css/main.c604976c.chunk.css.map": "/parse-pdf-demo/static/css/main.c604976c.chunk.css.map",
@@ -18,6 +18,7 @@
     "static/media/huge.pdf": "/parse-pdf-demo/static/media/huge.6e4e83bb.pdf",
     "static/media/test.pdf": "/parse-pdf-demo/static/media/test.ba02e324.pdf",
     "static/media/test_2.pdf": "/parse-pdf-demo/static/media/test_2.abc38450.pdf",
-    "static/media/test_page_tree_depth_2.pdf": "/parse-pdf-demo/static/media/test_page_tree_depth_2.4d676eff.pdf"
+    "static/media/test_page_tree_depth_2.pdf": "/parse-pdf-demo/static/media/test_page_tree_depth_2.4d676eff.pdf",
+    "static/media/test_with_graphics.pdf": "/parse-pdf-demo/static/media/test_with_graphics.dddd5405.pdf"
   }
 }
