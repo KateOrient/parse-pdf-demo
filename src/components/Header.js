@@ -5,6 +5,7 @@ import mediumPdf from '../files/test_2.pdf';
 import bigPdf from '../files/test.pdf';
 import hugePdf from '../files/huge.pdf';
 import testWithPageTreeDepth2 from '../files/test_page_tree_depth_2.pdf';
+import testWithGraphics from '../files/test_with_graphics.pdf';
 
 let disabledSize = 'small';
 
@@ -36,6 +37,9 @@ function Header(props) {
             case 'testWithPageTreeDepth2':
                 file = testWithPageTreeDepth2;
                 break;
+            case 'testWithGraphics':
+                file = testWithGraphics;
+                break;
         }
 
         return (e) => {
@@ -61,6 +65,9 @@ function Header(props) {
                 </button>
                 <button onClick={uploadTestPdf('testWithPageTreeDepth2')} className="app-btn" disabled={disabledSize === 'testWithPageTreeDepth2' || props.loading}>
                     Pdf with page tree depth of 2
+                </button>
+                <button onClick={uploadTestPdf('testWithGraphics')} className="app-btn" disabled={disabledSize === 'testWithGraphics' || props.loading}>
+                    Pdf with graphics
                 </button>
                 <button onClick={onUploadPdfClick} className="app-btn" disabled={props.loading}>
                     Upload other pdf
