@@ -1127,7 +1127,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else {
+        } else if (sqrt > 0.000000001) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
@@ -1143,10 +1143,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         return [root_1, root_2];
       }
 
-      function getCurveBoundingBox(x0, y0, x1, y1, x2, y2, x3, y3) {
+      function getCurveBoundingBox(op, x0, y0, x1, y1, x2, y2, x3, y3) {
         let state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        [x1, y1] = Util.applyTransform([x1, y1], state.ctm);
+        if (op !== OPS.curveTo2) {
+          [x1, y1] = Util.applyTransform([x1, y1], state.ctm);
+        }
         [x2, y2] = Util.applyTransform([x2, y2], state.ctm);
         [x3, y3] = Util.applyTransform([x3, y3], state.ctm);
 
@@ -1162,7 +1164,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
         let minY = Math.min(y0, y3, root_1 !== null ? curveY(root_1) : Number.MAX_VALUE, root_2 !== null ? curveY(root_2) : Number.MAX_VALUE);
         let maxY = Math.max(y0, y3, root_1 !== null ? curveY(root_1) : Number.MIN_VALUE, root_2 !== null ? curveY(root_2) : Number.MIN_VALUE);
-
+        
         let x = minX;
         let y = minY;
         let h = maxY - minY;
@@ -1557,6 +1559,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               continue;
             case OPS.curveTo:
               getCurveBoundingBox(
+                OPS.curveTo,
                 mcGraphicsState[mcGraphicsState.length - 1].move_x,
                 mcGraphicsState[mcGraphicsState.length - 1].move_y,
                 args[0],
@@ -1570,12 +1573,13 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               continue;
             case OPS.curveTo2:
               getCurveBoundingBox(
+                OPS.curveTo2,
+                mcGraphicsState[mcGraphicsState.length - 1].move_x,
+                mcGraphicsState[mcGraphicsState.length - 1].move_y,
                 mcGraphicsState[mcGraphicsState.length - 1].move_x,
                 mcGraphicsState[mcGraphicsState.length - 1].move_y,
                 args[0],
                 args[1],
-                args[2],
-                args[3],
                 args[2],
                 args[3]
               );
@@ -1583,12 +1587,13 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               continue;
             case OPS.curveTo3:
               getCurveBoundingBox(
-                mcGraphicsState[mcGraphicsState.length - 1].move_x,
-                mcGraphicsState[mcGraphicsState.length - 1].move_y,
+                OPS.curveTo3,
                 mcGraphicsState[mcGraphicsState.length - 1].move_x,
                 mcGraphicsState[mcGraphicsState.length - 1].move_y,
                 args[0],
                 args[1],
+                args[2],
+                args[3],
                 args[2],
                 args[3]
               );

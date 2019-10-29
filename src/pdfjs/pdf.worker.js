@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'b18fa3e';
+var pdfjsBuild = 'b479756';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31332,7 +31332,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else {
+        } else if (sqrt > 0.000000001) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
@@ -31347,15 +31347,17 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         return [root_1, root_2];
       }
 
-      function getCurveBoundingBox(x0, y0, x1, y1, x2, y2, x3, y3) {
+      function getCurveBoundingBox(op, x0, y0, x1, y1, x2, y2, x3, y3) {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        var _Util$applyTransform11 = _util.Util.applyTransform([x1, y1], state.ctm);
+        if (op !== _util.OPS.curveTo2) {
+          var _Util$applyTransform11 = _util.Util.applyTransform([x1, y1], state.ctm);
 
-        var _Util$applyTransform12 = _slicedToArray(_Util$applyTransform11, 2);
+          var _Util$applyTransform12 = _slicedToArray(_Util$applyTransform11, 2);
 
-        x1 = _Util$applyTransform12[0];
-        y1 = _Util$applyTransform12[1];
+          x1 = _Util$applyTransform12[0];
+          y1 = _Util$applyTransform12[1];
+        }
 
         var _Util$applyTransform13 = _util.Util.applyTransform([x2, y2], state.ctm);
 
@@ -31856,17 +31858,17 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               continue;
 
             case _util.OPS.curveTo:
-              getCurveBoundingBox(mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3], args[4], args[5]);
+              getCurveBoundingBox(_util.OPS.curveTo, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3], args[4], args[5]);
               self.buildPath(operatorList, fn, args);
               continue;
 
             case _util.OPS.curveTo2:
-              getCurveBoundingBox(mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3], args[2], args[3]);
+              getCurveBoundingBox(_util.OPS.curveTo2, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3]);
               self.buildPath(operatorList, fn, args);
               continue;
 
             case _util.OPS.curveTo3:
-              getCurveBoundingBox(mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3]);
+              getCurveBoundingBox(_util.OPS.curveTo3, mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y, args[0], args[1], args[2], args[3], args[2], args[3]);
               self.buildPath(operatorList, fn, args);
               continue;
 

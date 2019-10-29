@@ -257,9 +257,9 @@ class App extends React.Component {
             return;
         }
 
-        ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
+        //ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
 
-        /*let mcid = parseInt(bboxCoords.mcid);
+        let mcid = parseInt(bboxCoords.mcid);
         let { name, relatives, path, page } = this.getTagName({mcid, pageIndex});
         let tagRoleMapPath = '';
         let minX = 0;
@@ -293,7 +293,7 @@ class App extends React.Component {
             tagRoleMapPath = '-> ' + this.state.roleMap[name].name;
         }
 
-        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));*/
+        this.fillDocData(`${name} ${tagRoleMapPath}`, path.join(' -> '));
     }
 
     fillDocData(tagName = null, tagPath = null) {
