@@ -71,7 +71,7 @@ class App extends React.Component {
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = { ...this.state.bboxByPage };
             bboxByPage[page.pageIndex] = positionData;
-            //console.log('Data:', positionData);
+            console.log('Data:', positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
@@ -256,6 +256,8 @@ class App extends React.Component {
             this.fillDocData();
             return;
         }
+
+        //ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
 
         let mcid = parseInt(bboxCoords.mcid);
         let { name, relatives, path, page } = this.getTagName({mcid, pageIndex});
