@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '625a7be';
+var pdfjsBuild = '1d644b5';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31142,6 +31142,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
+        var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
+        var _ref7 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]],
+            tx0 = _ref7[0],
+            ty0 = _ref7[1];
 
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
@@ -31173,24 +31177,55 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         }
 
-        if (mc_x === null || mc_x > mcTextState.textLineMatrix[4]) {
-          mc_x = mcTextState.textLineMatrix[4];
+        var tx1;
+        var ty1;
+        var _ref8 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
+        tx1 = _ref8[0];
+        ty1 = _ref8[1];
+
+        var _Util$applyTransform = _util.Util.applyTransform([tx0, ty0], ctm),
+            _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
+            x0 = _Util$applyTransform2[0],
+            y0 = _Util$applyTransform2[1];
+
+        var _Util$applyTransform3 = _util.Util.applyTransform([tx1, ty0], ctm),
+            _Util$applyTransform4 = _slicedToArray(_Util$applyTransform3, 2),
+            x1 = _Util$applyTransform4[0],
+            y1 = _Util$applyTransform4[1];
+
+        var _Util$applyTransform5 = _util.Util.applyTransform([tx1, ty1], ctm),
+            _Util$applyTransform6 = _slicedToArray(_Util$applyTransform5, 2),
+            x2 = _Util$applyTransform6[0],
+            y2 = _Util$applyTransform6[1];
+
+        var _Util$applyTransform7 = _util.Util.applyTransform([tx0, ty1], ctm),
+            _Util$applyTransform8 = _slicedToArray(_Util$applyTransform7, 2),
+            x3 = _Util$applyTransform8[0],
+            y3 = _Util$applyTransform8[1];
+
+        var minX = Math.min(x0, x1, x2, x3);
+        var maxX = Math.max(x0, x1, x2, x3);
+        var minY = Math.min(y0, y1, y2, y3);
+        var maxY = Math.max(y0, y1, y2, y3);
+
+        if (mc_x === null || mc_x > minX) {
+          mc_x = minX;
         }
 
         if (mc_width) {
-          mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) - Math.min(old_x_value || mc_x, mcTextState.textLineMatrix[4]);
+          mc_width = Math.max((old_x_value || mc_x) + mc_width, maxX) - Math.min(old_x_value || mc_x, minX);
         } else {
-          mc_width = Math.abs(mc_x - mcTextState.textMatrix[4]);
+          mc_width = maxX - minX;
         }
 
         if (!mc_height) {
-          mc_height = mcTextState.textMatrix[3] * mcTextState.fontSize;
+          mc_height = maxY - minY;
         } else {
-          mc_height = Math.max(mc_y + mc_height, mcTextState.textLineMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize) - Math.min(mc_y, mcTextState.textLineMatrix[5]);
+          mc_height = Math.max(mc_y + mc_height, maxY) - Math.min(mc_y, minY);
         }
 
-        if (mc_y === null || mc_y > mcTextState.textLineMatrix[5]) {
-          mc_y = mcTextState.textLineMatrix[5];
+        if (mc_y === null || mc_y > minY) {
+          mc_y = minY;
         }
       }
 
@@ -31225,25 +31260,25 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       function getRectBoundingBox(x, y, w, h) {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        var _Util$applyTransform = _util.Util.applyTransform([x, y], state.ctm),
-            _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
-            x1 = _Util$applyTransform2[0],
-            y1 = _Util$applyTransform2[1];
+        var _Util$applyTransform9 = _util.Util.applyTransform([x, y], state.ctm),
+            _Util$applyTransform10 = _slicedToArray(_Util$applyTransform9, 2),
+            x1 = _Util$applyTransform10[0],
+            y1 = _Util$applyTransform10[1];
 
-        var _Util$applyTransform3 = _util.Util.applyTransform([x + w, y], state.ctm),
-            _Util$applyTransform4 = _slicedToArray(_Util$applyTransform3, 2),
-            x2 = _Util$applyTransform4[0],
-            y2 = _Util$applyTransform4[1];
+        var _Util$applyTransform11 = _util.Util.applyTransform([x + w, y], state.ctm),
+            _Util$applyTransform12 = _slicedToArray(_Util$applyTransform11, 2),
+            x2 = _Util$applyTransform12[0],
+            y2 = _Util$applyTransform12[1];
 
-        var _Util$applyTransform5 = _util.Util.applyTransform([x, y + h], state.ctm),
-            _Util$applyTransform6 = _slicedToArray(_Util$applyTransform5, 2),
-            x3 = _Util$applyTransform6[0],
-            y3 = _Util$applyTransform6[1];
+        var _Util$applyTransform13 = _util.Util.applyTransform([x, y + h], state.ctm),
+            _Util$applyTransform14 = _slicedToArray(_Util$applyTransform13, 2),
+            x3 = _Util$applyTransform14[0],
+            y3 = _Util$applyTransform14[1];
 
-        var _Util$applyTransform7 = _util.Util.applyTransform([x + w, y + h], state.ctm),
-            _Util$applyTransform8 = _slicedToArray(_Util$applyTransform7, 2),
-            x4 = _Util$applyTransform8[0],
-            y4 = _Util$applyTransform8[1];
+        var _Util$applyTransform15 = _util.Util.applyTransform([x + w, y + h], state.ctm),
+            _Util$applyTransform16 = _slicedToArray(_Util$applyTransform15, 2),
+            x4 = _Util$applyTransform16[0],
+            y4 = _Util$applyTransform16[1];
 
         x = Math.min(x1, x2, x3, x4);
         y = Math.min(y1, y2, y3, y4);
@@ -31278,12 +31313,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       function getLineBoundingBox(x, y) {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        var _Util$applyTransform9 = _util.Util.applyTransform([x, y], state.ctm);
+        var _Util$applyTransform17 = _util.Util.applyTransform([x, y], state.ctm);
 
-        var _Util$applyTransform10 = _slicedToArray(_Util$applyTransform9, 2);
+        var _Util$applyTransform18 = _slicedToArray(_Util$applyTransform17, 2);
 
-        x = _Util$applyTransform10[0];
-        y = _Util$applyTransform10[1];
+        x = _Util$applyTransform18[0];
+        y = _Util$applyTransform18[1];
 
         if (state.w === null) {
           state.w = Math.abs(x - state.move_x);
@@ -31351,27 +31386,27 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
         if (op !== _util.OPS.curveTo2) {
-          var _Util$applyTransform11 = _util.Util.applyTransform([x1, y1], state.ctm);
+          var _Util$applyTransform19 = _util.Util.applyTransform([x1, y1], state.ctm);
 
-          var _Util$applyTransform12 = _slicedToArray(_Util$applyTransform11, 2);
+          var _Util$applyTransform20 = _slicedToArray(_Util$applyTransform19, 2);
 
-          x1 = _Util$applyTransform12[0];
-          y1 = _Util$applyTransform12[1];
+          x1 = _Util$applyTransform20[0];
+          y1 = _Util$applyTransform20[1];
         }
 
-        var _Util$applyTransform13 = _util.Util.applyTransform([x2, y2], state.ctm);
+        var _Util$applyTransform21 = _util.Util.applyTransform([x2, y2], state.ctm);
 
-        var _Util$applyTransform14 = _slicedToArray(_Util$applyTransform13, 2);
+        var _Util$applyTransform22 = _slicedToArray(_Util$applyTransform21, 2);
 
-        x2 = _Util$applyTransform14[0];
-        y2 = _Util$applyTransform14[1];
+        x2 = _Util$applyTransform22[0];
+        y2 = _Util$applyTransform22[1];
 
-        var _Util$applyTransform15 = _util.Util.applyTransform([x3, y3], state.ctm);
+        var _Util$applyTransform23 = _util.Util.applyTransform([x3, y3], state.ctm);
 
-        var _Util$applyTransform16 = _slicedToArray(_Util$applyTransform15, 2);
+        var _Util$applyTransform24 = _slicedToArray(_Util$applyTransform23, 2);
 
-        x3 = _Util$applyTransform16[0];
-        y3 = _Util$applyTransform16[1];
+        x3 = _Util$applyTransform24[0];
+        y3 = _Util$applyTransform24[1];
         var curveX = getCurve(x0, x1, x2, x3);
         var curveY = getCurve(y0, y1, y2, y3);
 
@@ -31427,25 +31462,25 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
       function getImageBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        var _Util$applyTransform17 = _util.Util.applyTransform([0, 0], state.ctm),
-            _Util$applyTransform18 = _slicedToArray(_Util$applyTransform17, 2),
-            x0 = _Util$applyTransform18[0],
-            y0 = _Util$applyTransform18[1];
+        var _Util$applyTransform25 = _util.Util.applyTransform([0, 0], state.ctm),
+            _Util$applyTransform26 = _slicedToArray(_Util$applyTransform25, 2),
+            x0 = _Util$applyTransform26[0],
+            y0 = _Util$applyTransform26[1];
 
-        var _Util$applyTransform19 = _util.Util.applyTransform([0, 1], state.ctm),
-            _Util$applyTransform20 = _slicedToArray(_Util$applyTransform19, 2),
-            x1 = _Util$applyTransform20[0],
-            y1 = _Util$applyTransform20[1];
+        var _Util$applyTransform27 = _util.Util.applyTransform([0, 1], state.ctm),
+            _Util$applyTransform28 = _slicedToArray(_Util$applyTransform27, 2),
+            x1 = _Util$applyTransform28[0],
+            y1 = _Util$applyTransform28[1];
 
-        var _Util$applyTransform21 = _util.Util.applyTransform([1, 1], state.ctm),
-            _Util$applyTransform22 = _slicedToArray(_Util$applyTransform21, 2),
-            x2 = _Util$applyTransform22[0],
-            y2 = _Util$applyTransform22[1];
+        var _Util$applyTransform29 = _util.Util.applyTransform([1, 1], state.ctm),
+            _Util$applyTransform30 = _slicedToArray(_Util$applyTransform29, 2),
+            x2 = _Util$applyTransform30[0],
+            y2 = _Util$applyTransform30[1];
 
-        var _Util$applyTransform23 = _util.Util.applyTransform([1, 0], state.ctm),
-            _Util$applyTransform24 = _slicedToArray(_Util$applyTransform23, 2),
-            x3 = _Util$applyTransform24[0],
-            y3 = _Util$applyTransform24[1];
+        var _Util$applyTransform31 = _util.Util.applyTransform([1, 0], state.ctm),
+            _Util$applyTransform32 = _slicedToArray(_Util$applyTransform31, 2),
+            x3 = _Util$applyTransform32[0],
+            y3 = _Util$applyTransform32[1];
 
         state.x = Math.min(x0, x1, x2, x3);
         state.y = Math.min(y0, y1, y2, y3);
@@ -31522,7 +31557,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.endPath:
-              mcGraphicsState = [{
+              mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
                 w: null,
@@ -31530,7 +31565,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 move_x: 0,
                 move_y: 0,
                 ctm: _util.IDENTITY_MATRIX.slice()
-              }];
+              };
               break;
 
             case _util.OPS.transform:
@@ -31843,12 +31878,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.moveTo:
               var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm.slice();
 
-              var _Util$applyTransform25 = _util.Util.applyTransform(args, ctm);
+              var _Util$applyTransform33 = _util.Util.applyTransform(args, ctm);
 
-              var _Util$applyTransform26 = _slicedToArray(_Util$applyTransform25, 2);
+              var _Util$applyTransform34 = _slicedToArray(_Util$applyTransform33, 2);
 
-              mcGraphicsState[mcGraphicsState.length - 1].move_x = _Util$applyTransform26[0];
-              mcGraphicsState[mcGraphicsState.length - 1].move_y = _Util$applyTransform26[1];
+              mcGraphicsState[mcGraphicsState.length - 1].move_x = _Util$applyTransform34[0];
+              mcGraphicsState[mcGraphicsState.length - 1].move_y = _Util$applyTransform34[1];
               self.buildPath(operatorList, fn, args);
               continue;
 
@@ -31959,21 +31994,21 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         throw reason;
       });
     },
-    getTextContent: function getTextContent(_ref7) {
+    getTextContent: function getTextContent(_ref9) {
       var _this8 = this;
 
-      var stream = _ref7.stream,
-          task = _ref7.task,
-          resources = _ref7.resources,
-          _ref7$stateManager = _ref7.stateManager,
-          stateManager = _ref7$stateManager === void 0 ? null : _ref7$stateManager,
-          _ref7$normalizeWhites = _ref7.normalizeWhitespace,
-          normalizeWhitespace = _ref7$normalizeWhites === void 0 ? false : _ref7$normalizeWhites,
-          _ref7$combineTextItem = _ref7.combineTextItems,
-          combineTextItems = _ref7$combineTextItem === void 0 ? false : _ref7$combineTextItem,
-          sink = _ref7.sink,
-          _ref7$seenStyles = _ref7.seenStyles,
-          seenStyles = _ref7$seenStyles === void 0 ? Object.create(null) : _ref7$seenStyles;
+      var stream = _ref9.stream,
+          task = _ref9.task,
+          resources = _ref9.resources,
+          _ref9$stateManager = _ref9.stateManager,
+          stateManager = _ref9$stateManager === void 0 ? null : _ref9$stateManager,
+          _ref9$normalizeWhites = _ref9.normalizeWhitespace,
+          normalizeWhitespace = _ref9$normalizeWhites === void 0 ? false : _ref9$normalizeWhites,
+          _ref9$combineTextItem = _ref9.combineTextItems,
+          combineTextItems = _ref9$combineTextItem === void 0 ? false : _ref9$combineTextItem,
+          sink = _ref9.sink,
+          _ref9$seenStyles = _ref9.seenStyles,
+          seenStyles = _ref9$seenStyles === void 0 ? Object.create(null) : _ref9$seenStyles;
       resources = resources || _primitives.Dict.empty;
       stateManager = stateManager || new StateManager(new TextState());
       var WhitespaceRegexp = /\s/g;
