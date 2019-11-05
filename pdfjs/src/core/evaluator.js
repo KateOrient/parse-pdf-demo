@@ -1284,7 +1284,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               saveGraphicsBoundingBox();
               break;
             case OPS.endPath:
-              mcGraphicsState = [{
+              mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
                 w: null,
@@ -1292,7 +1292,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 move_x: 0,
                 move_y: 0,
                 ctm: IDENTITY_MATRIX.slice()
-              }];
+              };
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);

@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f433a79';
+var pdfjsBuild = 'd6537e9';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31557,7 +31557,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.endPath:
-              mcGraphicsState = [{
+              mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
                 w: null,
@@ -31565,7 +31565,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 move_x: 0,
                 move_y: 0,
                 ctm: _util.IDENTITY_MATRIX.slice()
-              }];
+              };
               break;
 
             case _util.OPS.transform:
