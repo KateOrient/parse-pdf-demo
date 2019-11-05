@@ -942,10 +942,16 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      //TODO: add full support for vertical text, other types of fonts
       function getTextBoundingBox(glyphs) {
-        var tx = 0;
-        var ty = 0;
-        var old_x_value = mc_x;
+        let tx = 0;
+        let ty = 0;
+        let old_x_value = mc_x;
+        let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
+
+        //Left Bottom point of text bbox
+        //Subtract scaled descent to place whole glyph in bbox
+        let [tx0, ty0] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]];
 
         for (let i = 0; i < glyphs.length; i++) {
           let glyph = glyphs[i];
@@ -956,44 +962,60 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               tx = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
             }
           } else {
-            var glyphWidth = null;
+            let glyphWidth = null;
             if (mcTextState.font.vertical && glyph.vmetric) {
               glyphWidth = glyph.vmetric[0];
             } else {
               glyphWidth = glyph.width;
             }
             if (!mcTextState.font.vertical) {
-              var w0 = glyphWidth * mcTextState.fontMatrix[0];
+              let w0 = glyphWidth * mcTextState.fontMatrix[0];
               tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) *
                 mcTextState.textHScale;
             } else {
-              var w1 = glyphWidth * mcTextState.fontMatrix[0];
+              let w1 = glyphWidth * mcTextState.fontMatrix[0];
               ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
             }
           }
           mcTextState.translateTextMatrix(tx, ty);
         }
+        //Right Top point of text bbox
+        let tx1;
+        let ty1;
+        //Adding height to y
+        [tx1, ty1] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
 
-        if (mc_x === null || mc_x > mcTextState.textLineMatrix[4]) {
-          mc_x = mcTextState.textLineMatrix[4];
+        let [x0, y0] = Util.applyTransform([tx0, ty0], ctm);
+        let [x1, y1] = Util.applyTransform([tx1, ty0], ctm);
+        let [x2, y2] = Util.applyTransform([tx1, ty1], ctm);
+        let [x3, y3] = Util.applyTransform([tx0, ty1], ctm);
+
+        let minX = Math.min(x0, x1, x2, x3);
+        let maxX = Math.max(x0, x1, x2, x3);
+
+        let minY = Math.min(y0, y1, y2, y3);
+        let maxY = Math.max(y0, y1, y2, y3);
+
+        if (mc_x === null || mc_x > minX) {
+          mc_x = minX;
         }
 
         if (mc_width) {
-          mc_width = Math.max((old_x_value || mc_x) + mc_width, mcTextState.textLineMatrix[4] + Math.abs(mcTextState.textLineMatrix[4] - mcTextState.textMatrix[4])) -
-            Math.min((old_x_value || mc_x), mcTextState.textLineMatrix[4]);
+          mc_width = Math.max((old_x_value || mc_x) + mc_width, maxX) -
+            Math.min((old_x_value || mc_x), minX);
         } else {
-          mc_width = Math.abs(mc_x - mcTextState.textMatrix[4]);
+          mc_width = maxX - minX;
         }
 
         if (!mc_height) {
-          mc_height = mcTextState.textMatrix[3] * mcTextState.fontSize;
+          mc_height = maxY - minY;
         } else {
-          mc_height = Math.max(mc_y + mc_height, mcTextState.textLineMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize) -
-            Math.min(mc_y, mcTextState.textLineMatrix[5]);
+          mc_height = Math.max(mc_y + mc_height, maxY) -
+            Math.min(mc_y, minY);
         }
 
-        if (mc_y === null || mc_y > mcTextState.textLineMatrix[5]) {
-          mc_y = mcTextState.textLineMatrix[5];
+        if (mc_y === null || mc_y > minY) {
+          mc_y = minY;
         }
       }
 
@@ -1164,7 +1186,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
 
         let minY = Math.min(y0, y3, root_1 !== null ? curveY(root_1) : Number.MAX_VALUE, root_2 !== null ? curveY(root_2) : Number.MAX_VALUE);
         let maxY = Math.max(y0, y3, root_1 !== null ? curveY(root_1) : Number.MIN_VALUE, root_2 !== null ? curveY(root_2) : Number.MIN_VALUE);
-        
+
         let x = minX;
         let y = minY;
         let h = maxY - minY;
@@ -1262,7 +1284,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               saveGraphicsBoundingBox();
               break;
             case OPS.endPath:
-              mcGraphicsState = [{
+              mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
                 w: null,
@@ -1270,7 +1292,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 move_x: 0,
                 move_y: 0,
                 ctm: IDENTITY_MATRIX.slice()
-              }];
+              };
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
