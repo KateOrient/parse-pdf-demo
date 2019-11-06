@@ -942,30 +942,49 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
-      // Get Rigth Top point as a right triangle corner
-      function getRightTopPoint(x0, y0, x1, y1, h) {
-        let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
-        let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting (x0,y0) and (x1,y1)
-        let rotated_e = [-e[1], e[0]]; //rotate unit vector by 90 deg to the left
-        let result_vector = [rotated_e[0] * h, rotated_e[1] * h];
+      // Get Top points of rectangle
+      // rectangle corners ABCD (clockwise starting with left bottom corner)
+      // rectangle base AB: A(x0, y0), B(x1, y1)
+      // rectangle height h
+      // return CD
+      function getTopPoints(x0, y0, x1, y1, h) {
+        let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)); //base length
 
-        return [x1 + result_vector[0], y1 + result_vector[1]];
+        let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting A and B
+
+        let rotated_e = [-e[1], e[0]]; //rotate unit vector by 90 deg to the left
+        let result_vector = [rotated_e[0] * h, rotated_e[1] * h]; //scale unit vactor
+
+        return [x1 + result_vector[0], y1 + result_vector[1], x0 + result_vector[0], y0 + result_vector[1]];
       }
 
       //TODO: add full support for vertical text, other types of fonts
       function getTextBoundingBox(glyphs) {
         let tx = 0;
         let ty = 0;
+        //Save previous x value to take it into account while calculating width of marked content
         let old_x_value = mc_x;
+
         let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
-        let scalingY = mcTextState.textMatrix[3] !== 0 ? mcTextState.textMatrix[3] : 1;
-        let descent = mcTextState.font.descent * mcTextState.fontSize * scalingY;
-        let rise = mcTextState.textRise * mcTextState.fontSize * scalingY;
-        let height = scalingY * mcTextState.fontSize;
+
+
+        let descent = mcTextState.font.descent * mcTextState.fontSize;
+        let ascent = mcTextState.font.ascent * mcTextState.fontSize;
+        let rise = mcTextState.textRise * mcTextState.fontSize;
+
+        //Calculate transformed height and shift to place whole glyph inside of bbox
+        let shift = Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
+        shift[0] -= mcTextState.textMatrix[4];
+        shift[1] -= mcTextState.textMatrix[5];
+
+        let height = Util.applyTransform([0, ascent + rise], mcTextState.textMatrix);
+        height[0] -= mcTextState.textMatrix[4] + shift[0];
+        height[1] -= mcTextState.textMatrix[5] + shift[1];
+        height = Math.sqrt(height[0] * height[0] + height[1] * height[1]);
 
         //Left Bottom point of text bbox
-        //Subtract scaled descent to place whole glyph in bbox
-        let [tx0, ty0] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise];
+        //Save before text matrix will be changed with going through glyphs
+        let [tx0, ty0] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
 
         for (let i = 0; i < glyphs.length; i++) {
           let glyph = glyphs[i];
@@ -993,15 +1012,17 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           }
           mcTextState.translateTextMatrix(tx, ty);
         }
-        //Right Top point of text bbox
-        let tx1;
-        let ty1;
-        [tx1, ty1] = getRightTopPoint(tx0, ty0, mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise, height);
 
+        //Right Bottom point is in text matrix after going through glyphs
+        let [tx1, ty1] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
+        //Top point can be calculated from base and height
+        let [tx2, ty2, tx3, ty3] = getTopPoints(tx0, ty0, mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1], height);
+
+        //Apply transform matrix to bbox
         let [x0, y0] = Util.applyTransform([tx0, ty0], ctm);
-        let [x1, y1] = Util.applyTransform([tx1, ty0], ctm);
-        let [x2, y2] = Util.applyTransform([tx1, ty1], ctm);
-        let [x3, y3] = Util.applyTransform([tx0, ty1], ctm);
+        let [x1, y1] = Util.applyTransform([tx1, ty1], ctm);
+        let [x2, y2] = Util.applyTransform([tx2, ty2], ctm);
+        let [x3, y3] = Util.applyTransform([tx3, ty3], ctm);
 
         let minX = Math.min(x0, x1, x2, x3);
         let maxX = Math.max(x0, x1, x2, x3);
@@ -1155,14 +1176,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         root_1 = null;
         root_2 = null;
 
-        //Count roots if equation has roots and they are real
-        //Equation has infinite roots if denominator is too small
-        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+        //Calculate roots if equation has roots and they are real
+        //Equation has infinite(too big) roots if denominator is too small
+        if (Math.abs(a + 3 * c - 3 * b - d) > Math.pow(0.1, -10)) {
           if (sqrt >= 0) {
             root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else if (sqrt > 0.000000001) {
+        } else if (sqrt > Math.pow(0.1, -10)) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 

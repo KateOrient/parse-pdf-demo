@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '96c8d67';
+var pdfjsBuild = '73d56e9';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31138,12 +31138,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
-      function getRightTopPoint(x0, y0, x1, y1, h) {
+      function getTopPoints(x0, y0, x1, y1, h) {
         var l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
         var e = [(x1 - x0) / l, (y1 - y0) / l];
         var rotated_e = [-e[1], e[0]];
         var result_vector = [rotated_e[0] * h, rotated_e[1] * h];
-        return [x1 + result_vector[0], y1 + result_vector[1]];
+        return [x1 + result_vector[0], y1 + result_vector[1], x0 + result_vector[0], y0 + result_vector[1]];
       }
 
       function getTextBoundingBox(glyphs) {
@@ -31151,13 +31151,22 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var ty = 0;
         var old_x_value = mc_x;
         var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
-        var scalingY = mcTextState.textMatrix[3] !== 0 ? mcTextState.textMatrix[3] : 1;
-        var descent = mcTextState.font.descent * mcTextState.fontSize * scalingY;
-        var rise = mcTextState.textRise * mcTextState.fontSize * scalingY;
-        var height = scalingY * mcTextState.fontSize;
-        var _ref7 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise],
-            tx0 = _ref7[0],
-            ty0 = _ref7[1];
+        var descent = mcTextState.font.descent * mcTextState.fontSize;
+        var ascent = mcTextState.font.ascent * mcTextState.fontSize;
+        var rise = mcTextState.textRise * mcTextState.fontSize;
+
+        var shift = _util.Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
+
+        shift[0] -= mcTextState.textMatrix[4];
+        shift[1] -= mcTextState.textMatrix[5];
+
+        var height = _util.Util.applyTransform([0, ascent + rise], mcTextState.textMatrix);
+
+        height[0] -= mcTextState.textMatrix[4] + shift[0];
+        height[1] -= mcTextState.textMatrix[5] + shift[1];
+        height = Math.sqrt(height[0] * height[0] + height[1] * height[1]);
+        var tx0 = mcTextState.textMatrix[4] + shift[0],
+            ty0 = mcTextState.textMatrix[5] + shift[1];
 
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
@@ -31189,32 +31198,32 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         }
 
-        var tx1;
-        var ty1;
+        var tx1 = mcTextState.textMatrix[4] + shift[0],
+            ty1 = mcTextState.textMatrix[5] + shift[1];
 
-        var _getRightTopPoint = getRightTopPoint(tx0, ty0, mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise, height);
-
-        var _getRightTopPoint2 = _slicedToArray(_getRightTopPoint, 2);
-
-        tx1 = _getRightTopPoint2[0];
-        ty1 = _getRightTopPoint2[1];
+        var _getTopPoints = getTopPoints(tx0, ty0, mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1], height),
+            _getTopPoints2 = _slicedToArray(_getTopPoints, 4),
+            tx2 = _getTopPoints2[0],
+            ty2 = _getTopPoints2[1],
+            tx3 = _getTopPoints2[2],
+            ty3 = _getTopPoints2[3];
 
         var _Util$applyTransform = _util.Util.applyTransform([tx0, ty0], ctm),
             _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
             x0 = _Util$applyTransform2[0],
             y0 = _Util$applyTransform2[1];
 
-        var _Util$applyTransform3 = _util.Util.applyTransform([tx1, ty0], ctm),
+        var _Util$applyTransform3 = _util.Util.applyTransform([tx1, ty1], ctm),
             _Util$applyTransform4 = _slicedToArray(_Util$applyTransform3, 2),
             x1 = _Util$applyTransform4[0],
             y1 = _Util$applyTransform4[1];
 
-        var _Util$applyTransform5 = _util.Util.applyTransform([tx1, ty1], ctm),
+        var _Util$applyTransform5 = _util.Util.applyTransform([tx2, ty2], ctm),
             _Util$applyTransform6 = _slicedToArray(_Util$applyTransform5, 2),
             x2 = _Util$applyTransform6[0],
             y2 = _Util$applyTransform6[1];
 
-        var _Util$applyTransform7 = _util.Util.applyTransform([tx0, ty1], ctm),
+        var _Util$applyTransform7 = _util.Util.applyTransform([tx3, ty3], ctm),
             _Util$applyTransform8 = _slicedToArray(_Util$applyTransform7, 2),
             x3 = _Util$applyTransform8[0],
             y3 = _Util$applyTransform8[1];
@@ -31378,12 +31387,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         root_1 = null;
         root_2 = null;
 
-        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+        if (Math.abs(a + 3 * c - 3 * b - d) > Math.pow(0.1, -10)) {
           if (sqrt >= 0) {
             root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else if (sqrt > 0.000000001) {
+        } else if (sqrt > Math.pow(0.1, -10)) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
@@ -32010,21 +32019,21 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         throw reason;
       });
     },
-    getTextContent: function getTextContent(_ref8) {
+    getTextContent: function getTextContent(_ref7) {
       var _this8 = this;
 
-      var stream = _ref8.stream,
-          task = _ref8.task,
-          resources = _ref8.resources,
-          _ref8$stateManager = _ref8.stateManager,
-          stateManager = _ref8$stateManager === void 0 ? null : _ref8$stateManager,
-          _ref8$normalizeWhites = _ref8.normalizeWhitespace,
-          normalizeWhitespace = _ref8$normalizeWhites === void 0 ? false : _ref8$normalizeWhites,
-          _ref8$combineTextItem = _ref8.combineTextItems,
-          combineTextItems = _ref8$combineTextItem === void 0 ? false : _ref8$combineTextItem,
-          sink = _ref8.sink,
-          _ref8$seenStyles = _ref8.seenStyles,
-          seenStyles = _ref8$seenStyles === void 0 ? Object.create(null) : _ref8$seenStyles;
+      var stream = _ref7.stream,
+          task = _ref7.task,
+          resources = _ref7.resources,
+          _ref7$stateManager = _ref7.stateManager,
+          stateManager = _ref7$stateManager === void 0 ? null : _ref7$stateManager,
+          _ref7$normalizeWhites = _ref7.normalizeWhitespace,
+          normalizeWhitespace = _ref7$normalizeWhites === void 0 ? false : _ref7$normalizeWhites,
+          _ref7$combineTextItem = _ref7.combineTextItems,
+          combineTextItems = _ref7$combineTextItem === void 0 ? false : _ref7$combineTextItem,
+          sink = _ref7.sink,
+          _ref7$seenStyles = _ref7.seenStyles,
+          seenStyles = _ref7$seenStyles === void 0 ? Object.create(null) : _ref7$seenStyles;
       resources = resources || _primitives.Dict.empty;
       stateManager = stateManager || new StateManager(new TextState());
       var WhitespaceRegexp = /\s/g;
