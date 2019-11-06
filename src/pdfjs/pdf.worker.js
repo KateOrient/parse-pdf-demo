@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'd6537e9';
+var pdfjsBuild = '96c8d67';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31138,12 +31138,24 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      function getRightTopPoint(x0, y0, x1, y1, h) {
+        var l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+        var e = [(x1 - x0) / l, (y1 - y0) / l];
+        var rotated_e = [-e[1], e[0]];
+        var result_vector = [rotated_e[0] * h, rotated_e[1] * h];
+        return [x1 + result_vector[0], y1 + result_vector[1]];
+      }
+
       function getTextBoundingBox(glyphs) {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
         var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
-        var _ref7 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]],
+        var scalingY = mcTextState.textMatrix[3] !== 0 ? mcTextState.textMatrix[3] : 1;
+        var descent = mcTextState.font.descent * mcTextState.fontSize * scalingY;
+        var rise = mcTextState.textRise * mcTextState.fontSize * scalingY;
+        var height = scalingY * mcTextState.fontSize;
+        var _ref7 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise],
             tx0 = _ref7[0],
             ty0 = _ref7[1];
 
@@ -31179,9 +31191,13 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
         var tx1;
         var ty1;
-        var _ref8 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
-        tx1 = _ref8[0];
-        ty1 = _ref8[1];
+
+        var _getRightTopPoint = getRightTopPoint(tx0, ty0, mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise, height);
+
+        var _getRightTopPoint2 = _slicedToArray(_getRightTopPoint, 2);
+
+        tx1 = _getRightTopPoint2[0];
+        ty1 = _getRightTopPoint2[1];
 
         var _Util$applyTransform = _util.Util.applyTransform([tx0, ty0], ctm),
             _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
@@ -31994,21 +32010,21 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         throw reason;
       });
     },
-    getTextContent: function getTextContent(_ref9) {
+    getTextContent: function getTextContent(_ref8) {
       var _this8 = this;
 
-      var stream = _ref9.stream,
-          task = _ref9.task,
-          resources = _ref9.resources,
-          _ref9$stateManager = _ref9.stateManager,
-          stateManager = _ref9$stateManager === void 0 ? null : _ref9$stateManager,
-          _ref9$normalizeWhites = _ref9.normalizeWhitespace,
-          normalizeWhitespace = _ref9$normalizeWhites === void 0 ? false : _ref9$normalizeWhites,
-          _ref9$combineTextItem = _ref9.combineTextItems,
-          combineTextItems = _ref9$combineTextItem === void 0 ? false : _ref9$combineTextItem,
-          sink = _ref9.sink,
-          _ref9$seenStyles = _ref9.seenStyles,
-          seenStyles = _ref9$seenStyles === void 0 ? Object.create(null) : _ref9$seenStyles;
+      var stream = _ref8.stream,
+          task = _ref8.task,
+          resources = _ref8.resources,
+          _ref8$stateManager = _ref8.stateManager,
+          stateManager = _ref8$stateManager === void 0 ? null : _ref8$stateManager,
+          _ref8$normalizeWhites = _ref8.normalizeWhitespace,
+          normalizeWhitespace = _ref8$normalizeWhites === void 0 ? false : _ref8$normalizeWhites,
+          _ref8$combineTextItem = _ref8.combineTextItems,
+          combineTextItems = _ref8$combineTextItem === void 0 ? false : _ref8$combineTextItem,
+          sink = _ref8.sink,
+          _ref8$seenStyles = _ref8.seenStyles,
+          seenStyles = _ref8$seenStyles === void 0 ? Object.create(null) : _ref8$seenStyles;
       resources = resources || _primitives.Dict.empty;
       stateManager = stateManager || new StateManager(new TextState());
       var WhitespaceRegexp = /\s/g;

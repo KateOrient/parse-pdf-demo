@@ -70,8 +70,7 @@ class App extends React.Component {
         page.getOperatorList().then((data) => {
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = { ...this.state.bboxByPage };
-            bboxByPage[page.pageIndex] = positionData;
-            console.log('Data:', positionData);
+            bboxByPage[page.pageIndex] = positionData || {};
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();

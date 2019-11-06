@@ -942,16 +942,30 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      // Get Rigth Top point as a right triangle corner
+      function getRightTopPoint(x0, y0, x1, y1, h) {
+        let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+        let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting (x0,y0) and (x1,y1)
+        let rotated_e = [-e[1], e[0]]; //rotate unit vector by 90 deg to the left
+        let result_vector = [rotated_e[0] * h, rotated_e[1] * h];
+
+        return [x1 + result_vector[0], y1 + result_vector[1]];
+      }
+
       //TODO: add full support for vertical text, other types of fonts
       function getTextBoundingBox(glyphs) {
         let tx = 0;
         let ty = 0;
         let old_x_value = mc_x;
         let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
+        let scalingY = mcTextState.textMatrix[3] !== 0 ? mcTextState.textMatrix[3] : 1;
+        let descent = mcTextState.font.descent * mcTextState.fontSize * scalingY;
+        let rise = mcTextState.textRise * mcTextState.fontSize * scalingY;
+        let height = scalingY * mcTextState.fontSize;
 
         //Left Bottom point of text bbox
         //Subtract scaled descent to place whole glyph in bbox
-        let [tx0, ty0] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]];
+        let [tx0, ty0] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise];
 
         for (let i = 0; i < glyphs.length; i++) {
           let glyph = glyphs[i];
@@ -982,8 +996,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         //Right Top point of text bbox
         let tx1;
         let ty1;
-        //Adding height to y
-        [tx1, ty1] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
+        [tx1, ty1] = getRightTopPoint(tx0, ty0, mcTextState.textMatrix[4], mcTextState.textMatrix[5] + descent + rise, height);
 
         let [x0, y0] = Util.applyTransform([tx0, ty0], ctm);
         let [x1, y1] = Util.applyTransform([tx1, ty0], ctm);
