@@ -1487,11 +1487,15 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.nextLineShowText:
+              mcTextState.carriageReturn();
               operatorList.addOp(OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
               break;
             case OPS.nextLineSetSpacingShowText:
+              mcTextState.carriageReturn();
+              mcTextState.wordSpacing = args[0];
+              mcTextState.charSpacing = args[1];
               operatorList.addOp(OPS.nextLine);
               operatorList.addOp(OPS.setWordSpacing, [args.shift()]);
               operatorList.addOp(OPS.setCharSpacing, [args.shift()]);
