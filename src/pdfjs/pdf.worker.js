@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '04b2256';
+var pdfjsBuild = '549e452';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31745,7 +31745,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.setHScale:
-              mcTextState.textHScale = args[0];
+              mcTextState.textHScale = args[0] / 100;
               break;
 
             case _util.OPS.setLeading:

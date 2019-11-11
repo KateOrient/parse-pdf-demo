@@ -1468,7 +1468,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcTextState.wordSpacing = args[0];
               break;
             case OPS.setHScale:
-              mcTextState.textHScale = args[0];
+              mcTextState.textHScale = args[0] / 100;
               break;
             case OPS.setLeading:
               mcTextState.leading = args[0];
