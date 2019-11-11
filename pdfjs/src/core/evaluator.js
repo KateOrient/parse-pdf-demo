@@ -1490,6 +1490,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               operatorList.addOp(OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
             case OPS.nextLineSetSpacingShowText:
               mcTextState.carriageReturn();
@@ -1500,6 +1501,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               operatorList.addOp(OPS.setCharSpacing, [args.shift()]);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
             case OPS.setTextRenderingMode:
               stateManager.state.textRenderingMode = args[0];

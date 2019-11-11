@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '549e452';
+var pdfjsBuild = 'cde1efe';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31772,6 +31772,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               operatorList.addOp(_util.OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = _util.OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.nextLineSetSpacingShowText:
@@ -31783,6 +31784,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               operatorList.addOp(_util.OPS.setCharSpacing, [args.shift()]);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = _util.OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.setTextRenderingMode:

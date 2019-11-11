@@ -71,6 +71,7 @@ class App extends React.Component {
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = { ...this.state.bboxByPage };
             bboxByPage[page.pageIndex] = positionData || {};
+            console.log('Data:', positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
@@ -259,6 +260,7 @@ class App extends React.Component {
         //ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
 
         let mcid = parseInt(bboxCoords.mcid);
+        refs.mcid.textContent = mcid;
         let { name, relatives, path, page } = this.getTagName({mcid, pageIndex});
         let tagRoleMapPath = '';
         let minX = 0;
@@ -399,6 +401,10 @@ class App extends React.Component {
                     <div className="tag-prop">
                         <div className="tag-info-title">Tree path</div>
                         <div ref={this.setRef('tagPath')} className="_empty">None</div>
+                    </div>
+                    <div className="tag-prop">
+                        <div className="tag-info-title">MCID</div>
+                        <div ref={this.setRef('mcid')} className="_empty">None</div>
                     </div>
                 </div>
             </div>
