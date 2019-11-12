@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'cde1efe';
+var pdfjsBuild = 'f093572';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13216,6 +13216,13 @@ function () {
       if (Number.isInteger(el)) {
         return {
           mcid: el,
+          pageIndex: page
+        };
+      }
+
+      if ((0, _primitives.isDict)(el) && el.has('Type') && el.get('Type').name === 'MCR') {
+        return {
+          mcid: el.get('MCID'),
           pageIndex: page
         };
       }
