@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'd6537e9';
+var pdfjsBuild = 'cf50ba9';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13216,6 +13216,13 @@ function () {
       if (Number.isInteger(el)) {
         return {
           mcid: el,
+          pageIndex: page
+        };
+      }
+
+      if ((0, _primitives.isDict)(el) && el.has('Type') && el.get('Type').name === 'MCR') {
+        return {
+          mcid: el.get('MCID'),
           pageIndex: page
         };
       }
@@ -31138,14 +31145,40 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      function getTopPoints(x0, y0, x1, y1, h) {
+        var l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+
+        if (l === 0) {
+          return [x1 + h, y1 + h, x0 + h, y0 + h];
+        }
+
+        var e = [(x1 - x0) / l, (y1 - y0) / l];
+        var rotated_e = [-e[1], e[0]];
+        var result_vector = [rotated_e[0] * h, rotated_e[1] * h];
+        return [x1 + result_vector[0], y1 + result_vector[1], x0 + result_vector[0], y0 + result_vector[1]];
+      }
+
       function getTextBoundingBox(glyphs) {
         var tx = 0;
         var ty = 0;
         var old_x_value = mc_x;
         var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
-        var _ref7 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]],
-            tx0 = _ref7[0],
-            ty0 = _ref7[1];
+        var descent = (mcTextState.font.descent || 0) * mcTextState.fontSize;
+        var ascent = (mcTextState.font.ascent || 0) * mcTextState.fontSize;
+        var rise = mcTextState.textRise * mcTextState.fontSize;
+
+        var shift = _util.Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
+
+        shift[0] -= mcTextState.textMatrix[4];
+        shift[1] -= mcTextState.textMatrix[5];
+
+        var height = _util.Util.applyTransform([0, ascent + rise], mcTextState.textMatrix);
+
+        height[0] -= mcTextState.textMatrix[4] + shift[0];
+        height[1] -= mcTextState.textMatrix[5] + shift[1];
+        height = Math.sqrt(height[0] * height[0] + height[1] * height[1]);
+        var tx0 = mcTextState.textMatrix[4] + shift[0],
+            ty0 = mcTextState.textMatrix[5] + shift[1];
 
         for (var i = 0; i < glyphs.length; i++) {
           var glyph = glyphs[i];
@@ -31166,10 +31199,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             }
 
             if (!mcTextState.font.vertical) {
-              var w0 = glyphWidth * mcTextState.fontMatrix[0];
+              var w0 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1 / 1000);
               tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) * mcTextState.textHScale;
             } else {
-              var w1 = glyphWidth * mcTextState.fontMatrix[0];
+              var w1 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1 / 1000);
               ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
             }
           }
@@ -31177,28 +31210,32 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
           mcTextState.translateTextMatrix(tx, ty);
         }
 
-        var tx1;
-        var ty1;
-        var _ref8 = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
-        tx1 = _ref8[0];
-        ty1 = _ref8[1];
+        var tx1 = mcTextState.textMatrix[4] + shift[0],
+            ty1 = mcTextState.textMatrix[5] + shift[1];
+
+        var _getTopPoints = getTopPoints(tx0, ty0, mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1], height),
+            _getTopPoints2 = _slicedToArray(_getTopPoints, 4),
+            tx2 = _getTopPoints2[0],
+            ty2 = _getTopPoints2[1],
+            tx3 = _getTopPoints2[2],
+            ty3 = _getTopPoints2[3];
 
         var _Util$applyTransform = _util.Util.applyTransform([tx0, ty0], ctm),
             _Util$applyTransform2 = _slicedToArray(_Util$applyTransform, 2),
             x0 = _Util$applyTransform2[0],
             y0 = _Util$applyTransform2[1];
 
-        var _Util$applyTransform3 = _util.Util.applyTransform([tx1, ty0], ctm),
+        var _Util$applyTransform3 = _util.Util.applyTransform([tx1, ty1], ctm),
             _Util$applyTransform4 = _slicedToArray(_Util$applyTransform3, 2),
             x1 = _Util$applyTransform4[0],
             y1 = _Util$applyTransform4[1];
 
-        var _Util$applyTransform5 = _util.Util.applyTransform([tx1, ty1], ctm),
+        var _Util$applyTransform5 = _util.Util.applyTransform([tx2, ty2], ctm),
             _Util$applyTransform6 = _slicedToArray(_Util$applyTransform5, 2),
             x2 = _Util$applyTransform6[0],
             y2 = _Util$applyTransform6[1];
 
-        var _Util$applyTransform7 = _util.Util.applyTransform([tx0, ty1], ctm),
+        var _Util$applyTransform7 = _util.Util.applyTransform([tx3, ty3], ctm),
             _Util$applyTransform8 = _slicedToArray(_Util$applyTransform7, 2),
             x3 = _Util$applyTransform8[0],
             y3 = _Util$applyTransform8[1];
@@ -31229,31 +31266,65 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
-      function saveGraphicsBoundingBox() {
+      function getClippingGraphicsBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
+        if (state.clip === null) {
+          return {
+            x: state.x,
+            y: state.y,
+            w: state.w,
+            h: state.h
+          };
+        }
+
+        if (state.x < state.clip.x && state.x + state.w < state.clip.x || state.x > state.clip.x + state.clip.w && state.x + state.w > state.clip.x + state.clip.w || state.y < state.clip.y && state.y + state.h < state.clip.y || state.y > state.clip.y + state.clip.h && state.y + state.h > state.clip.y + state.clip.h) {
+          return null;
+        }
+
+        return {
+          x: Math.max(state.x, state.clip.x),
+          y: Math.max(state.y, state.clip.y),
+          w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+          h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+        };
+      }
+
+      function saveGraphicsBoundingBox() {
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+        var clippingBBox = getClippingGraphicsBoundingBox();
+
+        if (clippingBBox === null) {
+          return;
+        }
+
+        var x = clippingBBox.x;
+        var y = clippingBBox.y;
+        var w = clippingBBox.w;
+        var h = clippingBBox.h;
+
         if (mc_width === null) {
-          mc_width = state.w;
+          mc_width = w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, state.x, state.x + state.w) - Math.min(mc_x, state.x, state.x + state.w);
+          mc_width = Math.max(mc_x + mc_width, x, x + w) - Math.min(mc_x, x, x + w);
         }
 
         if (mc_height === null) {
-          mc_height = state.h;
+          mc_height = h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, state.y, state.y + state.h) - Math.min(mc_y, state.y, state.y + state.h);
+          mc_height = Math.max(mc_y + mc_height, y, y + h) - Math.min(mc_y, y, y + h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(state.x, state.x + state.w);
+          mc_x = Math.min(x, x + w);
         } else {
-          mc_x = Math.min(mc_x, state.x, state.x + state.w);
+          mc_x = Math.min(mc_x, x, x + w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(state.y, state.y + state.h);
+          mc_y = Math.min(y, y + h);
         } else {
-          mc_y = Math.min(mc_y, state.y, state.y + state.h);
+          mc_y = Math.min(mc_y, y, y + h);
         }
       }
 
@@ -31362,12 +31433,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         root_1 = null;
         root_2 = null;
 
-        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+        if (Math.abs(a + 3 * c - 3 * b - d) > Math.pow(0.1, -10)) {
           if (sqrt >= 0) {
             root_1 = (-6 * a + 12 * b - 6 * c + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = (-6 * a + 12 * b - 6 * c - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else if (sqrt > 0.000000001) {
+        } else if (sqrt > Math.pow(0.1, -10)) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
@@ -31459,6 +31530,30 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         state.move_y = y;
       }
 
+      function getClip() {
+        if (clipping) {
+          var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+          if (state.clip === null) {
+            state.clip = {
+              x: state.x,
+              y: state.y,
+              w: state.w,
+              h: state.h
+            };
+          } else {
+            state.clip = {
+              x: Math.max(state.x, state.clip.x),
+              y: Math.max(state.y, state.clip.y),
+              w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+              h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+            };
+          }
+
+          clipping = false;
+        }
+      }
+
       function getImageBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
@@ -31502,8 +31597,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         h: null,
         move_x: 0,
         move_y: 0,
-        ctm: _util.IDENTITY_MATRIX.slice()
+        ctm: _util.IDENTITY_MATRIX.slice(),
+        clip: null
       }];
+      var clipping = false;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31553,10 +31650,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.closeEOFillStroke:
             case _util.OPS.closeFillStroke:
             case _util.OPS.closeStroke:
+              getClip();
               saveGraphicsBoundingBox();
               break;
 
             case _util.OPS.endPath:
+              getClip();
               mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
@@ -31564,12 +31663,18 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 h: null,
                 move_x: 0,
                 move_y: 0,
-                ctm: _util.IDENTITY_MATRIX.slice()
+                ctm: _util.IDENTITY_MATRIX.slice(),
+                clip: mcGraphicsState[mcGraphicsState.length - 1].clip
               };
               break;
 
             case _util.OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = _util.Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
+              break;
+
+            case _util.OPS.clip:
+            case _util.OPS.eoClip:
+              clipping = true;
               break;
 
             case _util.OPS.paintXObject:
@@ -31720,7 +31825,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.setHScale:
-              mcTextState.textHScale = args[0];
+              mcTextState.textHScale = args[0] / 100;
               break;
 
             case _util.OPS.setLeading:
@@ -31743,17 +31848,23 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
               break;
 
             case _util.OPS.nextLineShowText:
+              mcTextState.carriageReturn();
               operatorList.addOp(_util.OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = _util.OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.nextLineSetSpacingShowText:
+              mcTextState.carriageReturn();
+              mcTextState.wordSpacing = args[0];
+              mcTextState.charSpacing = args[1];
               operatorList.addOp(_util.OPS.nextLine);
               operatorList.addOp(_util.OPS.setWordSpacing, [args.shift()]);
               operatorList.addOp(_util.OPS.setCharSpacing, [args.shift()]);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = _util.OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
 
             case _util.OPS.setTextRenderingMode:
@@ -31994,21 +32105,21 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         throw reason;
       });
     },
-    getTextContent: function getTextContent(_ref9) {
+    getTextContent: function getTextContent(_ref7) {
       var _this8 = this;
 
-      var stream = _ref9.stream,
-          task = _ref9.task,
-          resources = _ref9.resources,
-          _ref9$stateManager = _ref9.stateManager,
-          stateManager = _ref9$stateManager === void 0 ? null : _ref9$stateManager,
-          _ref9$normalizeWhites = _ref9.normalizeWhitespace,
-          normalizeWhitespace = _ref9$normalizeWhites === void 0 ? false : _ref9$normalizeWhites,
-          _ref9$combineTextItem = _ref9.combineTextItems,
-          combineTextItems = _ref9$combineTextItem === void 0 ? false : _ref9$combineTextItem,
-          sink = _ref9.sink,
-          _ref9$seenStyles = _ref9.seenStyles,
-          seenStyles = _ref9$seenStyles === void 0 ? Object.create(null) : _ref9$seenStyles;
+      var stream = _ref7.stream,
+          task = _ref7.task,
+          resources = _ref7.resources,
+          _ref7$stateManager = _ref7.stateManager,
+          stateManager = _ref7$stateManager === void 0 ? null : _ref7$stateManager,
+          _ref7$normalizeWhites = _ref7.normalizeWhitespace,
+          normalizeWhitespace = _ref7$normalizeWhites === void 0 ? false : _ref7$normalizeWhites,
+          _ref7$combineTextItem = _ref7.combineTextItems,
+          combineTextItems = _ref7$combineTextItem === void 0 ? false : _ref7$combineTextItem,
+          sink = _ref7.sink,
+          _ref7$seenStyles = _ref7.seenStyles,
+          seenStyles = _ref7$seenStyles === void 0 ? Object.create(null) : _ref7$seenStyles;
       resources = resources || _primitives.Dict.empty;
       stateManager = stateManager || new StateManager(new TextState());
       var WhitespaceRegexp = /\s/g;

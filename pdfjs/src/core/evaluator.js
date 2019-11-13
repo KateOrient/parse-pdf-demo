@@ -942,16 +942,51 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      // Get Top points of rectangle
+      // rectangle corners ABCD (clockwise starting with left bottom corner)
+      // rectangle base AB: A(x0, y0), B(x1, y1)
+      // rectangle height h
+      // return CD
+      function getTopPoints(x0, y0, x1, y1, h) {
+        let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)); //base length
+        if (l === 0) {
+          return [x1 + h, y1 + h, x0 + h, y0 + h];
+        }
+
+        let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting A and B
+
+        let rotated_e = [-e[1], e[0]]; //rotate unit vector by 90 deg to the left
+        let result_vector = [rotated_e[0] * h, rotated_e[1] * h]; //scale unit vactor
+
+        return [x1 + result_vector[0], y1 + result_vector[1], x0 + result_vector[0], y0 + result_vector[1]];
+      }
+
       //TODO: add full support for vertical text, other types of fonts
       function getTextBoundingBox(glyphs) {
         let tx = 0;
         let ty = 0;
+        //Save previous x value to take it into account while calculating width of marked content
         let old_x_value = mc_x;
+
         let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
 
+        let descent = (mcTextState.font.descent || 0) * mcTextState.fontSize;
+        let ascent = (mcTextState.font.ascent || 0) * mcTextState.fontSize;
+        let rise = mcTextState.textRise * mcTextState.fontSize;
+
+        //Calculate transformed height and shift to place whole glyph inside of bbox
+        let shift = Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
+        shift[0] -= mcTextState.textMatrix[4];
+        shift[1] -= mcTextState.textMatrix[5];
+
+        let height = Util.applyTransform([0, ascent + rise], mcTextState.textMatrix);
+        height[0] -= mcTextState.textMatrix[4] + shift[0];
+        height[1] -= mcTextState.textMatrix[5] + shift[1];
+        height = Math.sqrt(height[0] * height[0] + height[1] * height[1]);
+
         //Left Bottom point of text bbox
-        //Subtract scaled descent to place whole glyph in bbox
-        let [tx0, ty0] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.font.descent * mcTextState.fontSize * mcTextState.textMatrix[3]];
+        //Save before text matrix will be changed with going through glyphs
+        let [tx0, ty0] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
 
         for (let i = 0; i < glyphs.length; i++) {
           let glyph = glyphs[i];
@@ -969,26 +1004,27 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               glyphWidth = glyph.width;
             }
             if (!mcTextState.font.vertical) {
-              let w0 = glyphWidth * mcTextState.fontMatrix[0];
+              let w0 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
               tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) *
                 mcTextState.textHScale;
             } else {
-              let w1 = glyphWidth * mcTextState.fontMatrix[0];
+              let w1 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
               ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
             }
           }
           mcTextState.translateTextMatrix(tx, ty);
         }
-        //Right Top point of text bbox
-        let tx1;
-        let ty1;
-        //Adding height to y
-        [tx1, ty1] = [mcTextState.textMatrix[4], mcTextState.textMatrix[5] + mcTextState.textMatrix[3] * mcTextState.fontSize];
 
+        //Right Bottom point is in text matrix after going through glyphs
+        let [tx1, ty1] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
+        //Top point can be calculated from base and height
+        let [tx2, ty2, tx3, ty3] = getTopPoints(tx0, ty0, mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1], height);
+
+        //Apply transform matrix to bbox
         let [x0, y0] = Util.applyTransform([tx0, ty0], ctm);
-        let [x1, y1] = Util.applyTransform([tx1, ty0], ctm);
-        let [x2, y2] = Util.applyTransform([tx1, ty1], ctm);
-        let [x3, y3] = Util.applyTransform([tx0, ty1], ctm);
+        let [x1, y1] = Util.applyTransform([tx1, ty1], ctm);
+        let [x2, y2] = Util.applyTransform([tx2, ty2], ctm);
+        let [x3, y3] = Util.applyTransform([tx3, ty3], ctm);
 
         let minX = Math.min(x0, x1, x2, x3);
         let maxX = Math.max(x0, x1, x2, x3);
@@ -1019,33 +1055,71 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      function getClippingGraphicsBoundingBox() {
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        if (state.clip === null) {
+          return {
+            x: state.x,
+            y: state.y,
+            w: state.w,
+            h: state.h
+          };
+        }
+
+        if ((state.x < state.clip.x && state.x + state.w < state.clip.x) ||
+          (state.x > state.clip.x + state.clip.w && state.x + state.w > state.clip.x + state.clip.w) ||
+          (state.y < state.clip.y && state.y + state.h < state.clip.y) ||
+          (state.y > state.clip.y + state.clip.h && state.y + state.h > state.clip.y + state.clip.h)) {
+          return null;
+        }
+
+        return {
+          x: Math.max(state.x, state.clip.x),
+          y: Math.max(state.y, state.clip.y),
+          w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+          h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+        };
+      }
+
       function saveGraphicsBoundingBox() {
         let state = mcGraphicsState[mcGraphicsState.length - 1];
 
+        let clippingBBox = getClippingGraphicsBoundingBox();
+
+        if (clippingBBox === null) {
+          return;
+        }
+
+        let x = clippingBBox.x;
+        let y = clippingBBox.y;
+        let w = clippingBBox.w;
+        let h = clippingBBox.h;
+
         if (mc_width === null) {
-          mc_width = state.w;
+          mc_width = w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, state.x, state.x + state.w) -
-            Math.min(mc_x, state.x, state.x + state.w);
+          mc_width = Math.max(mc_x + mc_width, x, x + w) -
+            Math.min(mc_x, x, x + w);
         }
 
         if (mc_height === null) {
-          mc_height = state.h;
+          mc_height = h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, state.y, state.y + state.h) -
-            Math.min(mc_y, state.y, state.y + state.h);
+          mc_height = Math.max(mc_y + mc_height, y, y + h) -
+            Math.min(mc_y, y, y + h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(state.x, state.x + state.w);
+          mc_x = Math.min(x, x + w);
         } else {
-          mc_x = Math.min(mc_x, state.x, state.x + state.w);
+          mc_x = Math.min(mc_x, x, x + w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(state.y, state.y + state.h);
+          mc_y = Math.min(y, y + h);
         } else {
-          mc_y = Math.min(mc_y, state.y, state.y + state.h);
+          mc_y = Math.min(mc_y, y, y + h);
         }
       }
 
@@ -1142,14 +1216,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         root_1 = null;
         root_2 = null;
 
-        //Count roots if equation has roots and they are real
-        //Equation has infinite roots if denominator is too small
-        if (Math.abs(a + 3 * c - 3 * b - d) > 0.000000001) {
+        //Calculate roots if equation has roots and they are real
+        //Equation has infinite(too big) roots if denominator is too small
+        if (Math.abs(a + 3 * c - 3 * b - d) > Math.pow(0.1, -10)) {
           if (sqrt >= 0) {
             root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
             root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
           }
-        } else if (sqrt > 0.000000001) {
+        } else if (sqrt > Math.pow(0.1, -10)) {
           root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
         }
 
@@ -1222,6 +1296,31 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         state.move_y = y;
       }
 
+      function getClip() {
+        if (clipping) {
+          let state = mcGraphicsState[mcGraphicsState.length - 1];
+
+          if (state.clip === null) {
+            state.clip = {
+              x: state.x,
+              y: state.y,
+              w: state.w,
+              h: state.h
+            };
+          } else {
+            //Intersection with previous clip
+            state.clip = {
+              x: Math.max(state.x, state.clip.x),
+              y: Math.max(state.y, state.clip.y),
+              w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+              h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y),
+            }
+          }
+
+          clipping = false;
+        }
+      }
+
       function getImageBoundingBox() {
         let state = mcGraphicsState[mcGraphicsState.length - 1];
         let [x0, y0] = Util.applyTransform([0, 0], state.ctm);
@@ -1239,7 +1338,17 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: 0, move_y: 0, ctm: IDENTITY_MATRIX.slice()}];
+      var mcGraphicsState = [{
+        x: null,
+        y: null,
+        w: null,
+        h: null,
+        move_x: 0,
+        move_y: 0,
+        ctm: IDENTITY_MATRIX.slice(),
+        clip: null
+      }];
+      var clipping = false;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1281,9 +1390,11 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
             case OPS.closeEOFillStroke:
             case OPS.closeFillStroke:
             case OPS.closeStroke:
+              getClip();
               saveGraphicsBoundingBox();
               break;
             case OPS.endPath:
+              getClip();
               mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
@@ -1291,11 +1402,16 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 h: null,
                 move_x: 0,
                 move_y: 0,
-                ctm: IDENTITY_MATRIX.slice()
+                ctm: IDENTITY_MATRIX.slice(),
+                clip: mcGraphicsState[mcGraphicsState.length - 1].clip
               };
               break;
             case OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
+              break;
+            case OPS.clip:
+            case OPS.eoClip:
+              clipping = true;
               break;
             case OPS.paintXObject:
               // eagerly compile XForm objects
@@ -1435,7 +1551,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcTextState.wordSpacing = args[0];
               break;
             case OPS.setHScale:
-              mcTextState.textHScale = args[0];
+              mcTextState.textHScale = args[0] / 100;
               break;
             case OPS.setLeading:
               mcTextState.leading = args[0];
@@ -1453,16 +1569,22 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.nextLineShowText:
+              mcTextState.carriageReturn();
               operatorList.addOp(OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
             case OPS.nextLineSetSpacingShowText:
+              mcTextState.carriageReturn();
+              mcTextState.wordSpacing = args[0];
+              mcTextState.charSpacing = args[1];
               operatorList.addOp(OPS.nextLine);
               operatorList.addOp(OPS.setWordSpacing, [args.shift()]);
               operatorList.addOp(OPS.setCharSpacing, [args.shift()]);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
+              getTextBoundingBox(args[0]);
               break;
             case OPS.setTextRenderingMode:
               stateManager.state.textRenderingMode = args[0];
