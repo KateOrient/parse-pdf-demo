@@ -118,6 +118,9 @@ class CatalogMain {
     if (Number.isInteger(el)) {
       return {mcid: el, pageIndex: page};
     }
+    if (isDict(el) && el.has('Type') && el.get('Type').name === 'MCR') {
+      return {mcid: el.get('MCID'), pageIndex: page};
+    }
   }
 
   getPages(pages) {
