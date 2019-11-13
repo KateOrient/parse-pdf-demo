@@ -245,7 +245,8 @@ class App extends React.Component {
             relatives.forEach(({mcid: elementMcid, pageIndex: page}, index) => {
                 if (+pageIndex !== page || !bboxList[elementMcid]) return;
                 let {x, y, width, height} = bboxList[elementMcid];
-                if (_.isNaN(x) || _.isNaN(y) || _.isNaN(width) || _.isNaN(height)) return;
+                if (_.isNaN(x) || _.isNaN(y) || _.isNaN(width) || _.isNaN(height) ||
+                    _.isNull(x) || _.isNull(y) || _.isNull(width) || _.isNull(height)) return;
                 if (!index) {
                     minX = x;
                     maxX = x + width;
