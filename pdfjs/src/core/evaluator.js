@@ -949,6 +949,9 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       // return CD
       function getTopPoints(x0, y0, x1, y1, h) {
         let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)); //base length
+        if (l === 0) {
+          return [x1 + h, y1 + h, x0 + h, y0 + h];
+        }
 
         let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting A and B
 
@@ -1052,19 +1055,46 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         }
       }
 
+      function getClippingGraphicsBoundingBox() {
+        let state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        if (state.clip === null) {
+          return {
+            x: state.x,
+            y: state.y,
+            w: state.w,
+            h: state.h
+          };
+        }
+
+        if ((state.x < state.clip.x && state.x + state.w < state.clip.x) ||
+          (state.x > state.clip.x + state.clip.w && state.x + state.w > state.clip.x + state.clip.w) ||
+          (state.y < state.clip.y && state.y + state.h < state.clip.y) ||
+          (state.y > state.clip.y + state.clip.h && state.y + state.h > state.clip.y + state.clip.h)) {
+          return null;
+        }
+
+        return {
+          x: Math.max(state.x, state.clip.x),
+          y: Math.max(state.y, state.clip.y),
+          w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+          h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+        };
+      }
+
       function saveGraphicsBoundingBox() {
         let state = mcGraphicsState[mcGraphicsState.length - 1];
 
-        let x = state.x;
-        let y = state.y;
-        let w = state.w;
-        let h = state.h;
-        if (state.clip !== null) {
-          x = Math.max(state.x, state.clip.x);
-          y = Math.max(state.y, state.clip.y);
-          w = Math.min(state.x + state.w, state.clip.x + state.clip.w) - x;
-          h = Math.min(state.y + state.h, state.clip.y + state.clip.h) - y;
+        let clippingBBox = getClippingGraphicsBoundingBox();
+
+        if (clippingBBox === null) {
+          return;
         }
+
+        let x = clippingBBox.x;
+        let y = clippingBBox.y;
+        let w = clippingBBox.w;
+        let h = clippingBBox.h;
 
         if (mc_width === null) {
           mc_width = w;
@@ -1308,7 +1338,16 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
       var mcid = [];
       var mcTextState = new TextState();
-      var mcGraphicsState = [{x: null, y: null, w: null, h: null, move_x: 0, move_y: 0, ctm: IDENTITY_MATRIX.slice(), clip: null}];
+      var mcGraphicsState = [{
+        x: null,
+        y: null,
+        w: null,
+        h: null,
+        move_x: 0,
+        move_y: 0,
+        ctm: IDENTITY_MATRIX.slice(),
+        clip: null
+      }];
       var clipping = false;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {

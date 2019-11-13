@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'c46d54f';
+var pdfjsBuild = 'dfb4544';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31147,6 +31147,11 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
       function getTopPoints(x0, y0, x1, y1, h) {
         var l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+
+        if (l === 0) {
+          return [x1 + h, y1 + h, x0 + h, y0 + h];
+        }
+
         var e = [(x1 - x0) / l, (y1 - y0) / l];
         var rotated_e = [-e[1], e[0]];
         var result_vector = [rotated_e[0] * h, rotated_e[1] * h];
@@ -31261,19 +31266,42 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         }
       }
 
+      function getClippingGraphicsBoundingBox() {
+        var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+        if (state.clip === null) {
+          return {
+            x: state.x,
+            y: state.y,
+            w: state.w,
+            h: state.h
+          };
+        }
+
+        if (state.x < state.clip.x && state.x + state.w < state.clip.x || state.x > state.clip.x + state.clip.w && state.x + state.w > state.clip.x + state.clip.w || state.y < state.clip.y && state.y + state.h < state.clip.y || state.y > state.clip.y + state.clip.h && state.y + state.h > state.clip.y + state.clip.h) {
+          return null;
+        }
+
+        return {
+          x: Math.max(state.x, state.clip.x),
+          y: Math.max(state.y, state.clip.y),
+          w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+          h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+        };
+      }
+
       function saveGraphicsBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
-        var x = state.x;
-        var y = state.y;
-        var w = state.w;
-        var h = state.h;
+        var clippingBBox = getClippingGraphicsBoundingBox();
 
-        if (state.clip !== null) {
-          x = Math.max(state.x, state.clip.x);
-          y = Math.max(state.y, state.clip.y);
-          w = Math.min(state.x + state.w, state.clip.x + state.clip.w) - x;
-          h = Math.min(state.y + state.h, state.clip.y + state.clip.h) - y;
+        if (clippingBBox === null) {
+          return;
         }
+
+        var x = clippingBBox.x;
+        var y = clippingBBox.y;
+        var w = clippingBBox.w;
+        var h = clippingBBox.h;
 
         if (mc_width === null) {
           mc_width = w;
