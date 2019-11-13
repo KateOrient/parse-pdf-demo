@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'dfb4544';
+var pdfjsBuild = 'cf50ba9';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31199,10 +31199,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             }
 
             if (!mcTextState.font.vertical) {
-              var w0 = glyphWidth * mcTextState.fontMatrix[0];
+              var w0 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1 / 1000);
               tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) * mcTextState.textHScale;
             } else {
-              var w1 = glyphWidth * mcTextState.fontMatrix[0];
+              var w1 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1 / 1000);
               ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
             }
           }

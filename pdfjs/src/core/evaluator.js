@@ -1004,11 +1004,11 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               glyphWidth = glyph.width;
             }
             if (!mcTextState.font.vertical) {
-              let w0 = glyphWidth * mcTextState.fontMatrix[0];
+              let w0 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
               tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) *
                 mcTextState.textHScale;
             } else {
-              let w1 = glyphWidth * mcTextState.fontMatrix[0];
+              let w1 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
               ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
             }
           }
