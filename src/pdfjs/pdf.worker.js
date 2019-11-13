@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'f093572';
+var pdfjsBuild = 'c46d54f';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31263,29 +31263,40 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
 
       function saveGraphicsBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
+        var x = state.x;
+        var y = state.y;
+        var w = state.w;
+        var h = state.h;
+
+        if (state.clip !== null) {
+          x = Math.max(state.x, state.clip.x);
+          y = Math.max(state.y, state.clip.y);
+          w = Math.min(state.x + state.w, state.clip.x + state.clip.w) - x;
+          h = Math.min(state.y + state.h, state.clip.y + state.clip.h) - y;
+        }
 
         if (mc_width === null) {
-          mc_width = state.w;
+          mc_width = w;
         } else {
-          mc_width = Math.max(mc_x + mc_width, state.x, state.x + state.w) - Math.min(mc_x, state.x, state.x + state.w);
+          mc_width = Math.max(mc_x + mc_width, x, x + w) - Math.min(mc_x, x, x + w);
         }
 
         if (mc_height === null) {
-          mc_height = state.h;
+          mc_height = h;
         } else {
-          mc_height = Math.max(mc_y + mc_height, state.y, state.y + state.h) - Math.min(mc_y, state.y, state.y + state.h);
+          mc_height = Math.max(mc_y + mc_height, y, y + h) - Math.min(mc_y, y, y + h);
         }
 
         if (mc_x === null) {
-          mc_x = Math.min(state.x, state.x + state.w);
+          mc_x = Math.min(x, x + w);
         } else {
-          mc_x = Math.min(mc_x, state.x, state.x + state.w);
+          mc_x = Math.min(mc_x, x, x + w);
         }
 
         if (mc_y === null) {
-          mc_y = Math.min(state.y, state.y + state.h);
+          mc_y = Math.min(y, y + h);
         } else {
-          mc_y = Math.min(mc_y, state.y, state.y + state.h);
+          mc_y = Math.min(mc_y, y, y + h);
         }
       }
 
@@ -31491,6 +31502,30 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         state.move_y = y;
       }
 
+      function getClip() {
+        if (clipping) {
+          var state = mcGraphicsState[mcGraphicsState.length - 1];
+
+          if (state.clip === null) {
+            state.clip = {
+              x: state.x,
+              y: state.y,
+              w: state.w,
+              h: state.h
+            };
+          } else {
+            state.clip = {
+              x: Math.max(state.x, state.clip.x),
+              y: Math.max(state.y, state.clip.y),
+              w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
+              h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
+            };
+          }
+
+          clipping = false;
+        }
+      }
+
       function getImageBoundingBox() {
         var state = mcGraphicsState[mcGraphicsState.length - 1];
 
@@ -31534,8 +31569,10 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         h: null,
         move_x: 0,
         move_y: 0,
-        ctm: _util.IDENTITY_MATRIX.slice()
+        ctm: _util.IDENTITY_MATRIX.slice(),
+        clip: null
       }];
+      var clipping = false;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function next(promise) {
           promise.then(function () {
@@ -31585,10 +31622,12 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
             case _util.OPS.closeEOFillStroke:
             case _util.OPS.closeFillStroke:
             case _util.OPS.closeStroke:
+              getClip();
               saveGraphicsBoundingBox();
               break;
 
             case _util.OPS.endPath:
+              getClip();
               mcGraphicsState[mcGraphicsState.length - 1] = {
                 x: null,
                 y: null,
@@ -31596,12 +31635,18 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
                 h: null,
                 move_x: 0,
                 move_y: 0,
-                ctm: _util.IDENTITY_MATRIX.slice()
+                ctm: _util.IDENTITY_MATRIX.slice(),
+                clip: mcGraphicsState[mcGraphicsState.length - 1].clip
               };
               break;
 
             case _util.OPS.transform:
               mcGraphicsState[mcGraphicsState.length - 1].ctm = _util.Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
+              break;
+
+            case _util.OPS.clip:
+            case _util.OPS.eoClip:
+              clipping = true;
               break;
 
             case _util.OPS.paintXObject:

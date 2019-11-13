@@ -238,9 +238,9 @@ class App extends React.Component {
             let path = result.path;
             let relatives = result.relatives.filter(el => el.pageIndex === +pageIndex);
             let tagRoleMapPath = '';
-            let minX = 0;
+            let minX = Number.MAX_VALUE;
             let maxX = 0;
-            let minY = 0;
+            let minY = Number.MAX_VALUE;
             let maxY = 0;
             relatives.forEach(({mcid: elementMcid, pageIndex: page}, index) => {
                 if (+pageIndex !== page || !bboxList[elementMcid]) return;
@@ -266,6 +266,8 @@ class App extends React.Component {
             }
 
             this.fillDocData(`${path[path.length - 1]} ${tagRoleMapPath}`, path.join(' -> '), mcid);
+        } else {
+            ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
         }
     };
 
