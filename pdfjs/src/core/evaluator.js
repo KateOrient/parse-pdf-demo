@@ -971,7 +971,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
 
         let descent = (mcTextState.font.descent || 0) * mcTextState.fontSize;
-        let ascent = (mcTextState.font.ascent || 0) * mcTextState.fontSize;
+        let ascent = (mcTextState.font.ascent || 1) * mcTextState.fontSize;
         let rise = mcTextState.textRise * mcTextState.fontSize;
 
         //Calculate transformed height and shift to place whole glyph inside of bbox
