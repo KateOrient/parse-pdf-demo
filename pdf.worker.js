@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '9cdf782';
+var pdfjsBuild = '25f1590';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -31164,7 +31164,7 @@ var PartialEvaluator = function PartialEvaluatorClosure() {
         var old_x_value = mc_x;
         var ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
         var descent = (mcTextState.font.descent || 0) * mcTextState.fontSize;
-        var ascent = (mcTextState.font.ascent || 0) * mcTextState.fontSize;
+        var ascent = (mcTextState.font.ascent || 1) * mcTextState.fontSize;
         var rise = mcTextState.textRise * mcTextState.fontSize;
 
         var shift = _util.Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
