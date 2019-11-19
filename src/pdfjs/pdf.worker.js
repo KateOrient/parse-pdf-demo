@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = 'a038c0d';
+var pdfjsBuild = '626b59d';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13196,6 +13196,23 @@ function () {
 
       if ((0, _primitives.isDict)(el) && el.has('K')) {
         return _defineProperty({}, (0, _util.stringToUTF8String)(el.get('S').name), this.getTreeElement(el.get('K'), page));
+      }
+
+      if ((0, _primitives.isDict)(el) && el.has('Obj')) {
+        var obj = el.get('Obj');
+        var type = obj.get('Type').name;
+
+        switch (type) {
+          case 'Annot':
+            var rect = obj.get('Rect');
+            return {
+              rect: [rect[0], rect[1], rect[2], rect[3]],
+              pageIndex: page
+            };
+
+          default:
+            break;
+        }
       }
 
       if (Array.isArray(el)) {

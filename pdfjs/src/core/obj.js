@@ -104,6 +104,22 @@ class CatalogMain {
         [stringToUTF8String(el.get('S').name)]: this.getTreeElement(el.get('K'), page)
       }
     }
+
+    if (isDict(el) && el.has('Obj')) {
+      let obj = el.get('Obj');
+      let type = obj.get('Type').name;
+      switch (type){
+        case 'Annot':
+          let rect = obj.get('Rect');
+          return {
+            rect: [rect[0], rect[1], rect[2], rect[3]],
+            pageIndex: page
+          };
+        default:
+          break;
+      }
+    }
+
     if (Array.isArray(el)) {
       return el.map(subel => {
         if (Number.isInteger(subel)) {
