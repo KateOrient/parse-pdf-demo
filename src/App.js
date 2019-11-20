@@ -157,10 +157,11 @@ class App extends React.Component {
     //  Create page overlay for BBOXes
     onPageRenderSuccess = (page) => {
         page.getOperatorList().then((data) => {
+            console.log(data);
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = {...this.state.bboxByPage};
             bboxByPage[page.pageIndex] = positionData || {};
-            console.log('Data:', page.pageIndex, positionData);
+            //console.log('Data:', page.pageIndex, positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();

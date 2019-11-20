@@ -48,6 +48,7 @@ import {JpegStream} from './jpeg_stream';
 import {MurmurHash3_64} from './murmurhash3';
 import {OperatorList} from './operator_list';
 import {PDFImage} from './image';
+import {BoundingBoxesCalculator} from "./bounding_boxes";
 
 var PartialEvaluator = (function PartialEvaluatorClosure() {
   const DefaultPartialEvaluatorOptions = {
@@ -926,6 +927,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         throw new Error('getOperatorList: missing "operatorList" parameter');
       }
 
+      var boundingBoxCalculator = new BoundingBoxesCalculator();
       var self = this;
       var xref = this.xref;
       var imageCache = Object.create(null);
@@ -941,414 +943,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           operatorList.addOp(OPS.restore, []);
         }
       }
-
-      // Get Top points of rectangle
-      // rectangle corners ABCD (clockwise starting with left bottom corner)
-      // rectangle base AB: A(x0, y0), B(x1, y1)
-      // rectangle height h
-      // return CD
-      function getTopPoints(x0, y0, x1, y1, h) {
-        let l = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)); //base length
-        if (l === 0) {
-          return [x1 + h, y1 + h, x0 + h, y0 + h];
-        }
-
-        let e = [(x1 - x0) / l, (y1 - y0) / l]; //get unit vector for line connecting A and B
-
-        let rotated_e = [-e[1], e[0]]; //rotate unit vector by 90 deg to the left
-        let result_vector = [rotated_e[0] * h, rotated_e[1] * h]; //scale unit vactor
-
-        return [x1 + result_vector[0], y1 + result_vector[1], x0 + result_vector[0], y0 + result_vector[1]];
-      }
-
-      //TODO: add full support for vertical text, other types of fonts
-      function getTextBoundingBox(glyphs) {
-        let tx = 0;
-        let ty = 0;
-        //Save previous x value to take it into account while calculating width of marked content
-        let old_x_value = mc_x;
-
-        let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm;
-
-        let descent = (mcTextState.font.descent || 0) * mcTextState.fontSize;
-        let ascent = (mcTextState.font.ascent || 1) * mcTextState.fontSize;
-        let rise = mcTextState.textRise * mcTextState.fontSize;
-
-        //Calculate transformed height and shift to place whole glyph inside of bbox
-        let shift = Util.applyTransform([0, descent + rise], mcTextState.textMatrix);
-        shift[0] -= mcTextState.textMatrix[4];
-        shift[1] -= mcTextState.textMatrix[5];
-
-        let height = Util.applyTransform([0, ascent + rise], mcTextState.textMatrix);
-        height[0] -= mcTextState.textMatrix[4] + shift[0];
-        height[1] -= mcTextState.textMatrix[5] + shift[1];
-        height = Math.sqrt(height[0] * height[0] + height[1] * height[1]);
-
-        //Left Bottom point of text bbox
-        //Save before text matrix will be changed with going through glyphs
-        let [tx0, ty0] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
-
-        for (let i = 0; i < glyphs.length; i++) {
-          let glyph = glyphs[i];
-          if (isNum(glyph)) {
-            if (mcTextState.font.vertical) {
-              ty = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
-            } else {
-              tx = -glyph / 1000 * mcTextState.fontSize * mcTextState.textHScale;
-            }
-          } else {
-            let glyphWidth = null;
-            if (mcTextState.font.vertical && glyph.vmetric) {
-              glyphWidth = glyph.vmetric[0];
-            } else {
-              glyphWidth = glyph.width;
-            }
-            if (!mcTextState.font.vertical) {
-              let w0 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
-              tx = (w0 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0)) *
-                mcTextState.textHScale;
-            } else {
-              let w1 = glyphWidth * (mcTextState.fontMatrix ? mcTextState.fontMatrix[0] : 1/1000);
-              ty = w1 * mcTextState.fontSize + mcTextState.charSpacing + (glyph.isSpace ? mcTextState.wordSpacing : 0);
-            }
-          }
-          mcTextState.translateTextMatrix(tx, ty);
-        }
-
-        //Right Bottom point is in text matrix after going through glyphs
-        let [tx1, ty1] = [mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1]];
-        //Top point can be calculated from base and height
-        let [tx2, ty2, tx3, ty3] = getTopPoints(tx0, ty0, mcTextState.textMatrix[4] + shift[0], mcTextState.textMatrix[5] + shift[1], height);
-
-        //Apply transform matrix to bbox
-        let [x0, y0] = Util.applyTransform([tx0, ty0], ctm);
-        let [x1, y1] = Util.applyTransform([tx1, ty1], ctm);
-        let [x2, y2] = Util.applyTransform([tx2, ty2], ctm);
-        let [x3, y3] = Util.applyTransform([tx3, ty3], ctm);
-
-        let minX = Math.min(x0, x1, x2, x3);
-        let maxX = Math.max(x0, x1, x2, x3);
-
-        let minY = Math.min(y0, y1, y2, y3);
-        let maxY = Math.max(y0, y1, y2, y3);
-
-        if (mc_x === null || mc_x > minX) {
-          mc_x = minX;
-        }
-
-        if (mc_width) {
-          mc_width = Math.max((old_x_value || mc_x) + mc_width, maxX) -
-            Math.min((old_x_value || mc_x), minX);
-        } else {
-          mc_width = maxX - minX;
-        }
-
-        if (!mc_height) {
-          mc_height = maxY - minY;
-        } else {
-          mc_height = Math.max(mc_y + mc_height, maxY) -
-            Math.min(mc_y, minY);
-        }
-
-        if (mc_y === null || mc_y > minY) {
-          mc_y = minY;
-        }
-      }
-
-      function getClippingGraphicsBoundingBox() {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-        if (state.clip === null) {
-          return {
-            x: state.x,
-            y: state.y,
-            w: state.w,
-            h: state.h
-          };
-        }
-
-        if ((state.x < state.clip.x && state.x + state.w < state.clip.x) ||
-          (state.x > state.clip.x + state.clip.w && state.x + state.w > state.clip.x + state.clip.w) ||
-          (state.y < state.clip.y && state.y + state.h < state.clip.y) ||
-          (state.y > state.clip.y + state.clip.h && state.y + state.h > state.clip.y + state.clip.h)) {
-          return null;
-        }
-
-        return {
-          x: Math.max(state.x, state.clip.x),
-          y: Math.max(state.y, state.clip.y),
-          w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
-          h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y)
-        };
-      }
-
-      function saveGraphicsBoundingBox() {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-        let clippingBBox = getClippingGraphicsBoundingBox();
-
-        if (clippingBBox === null) {
-          return;
-        }
-
-        let x = clippingBBox.x;
-        let y = clippingBBox.y;
-        let w = clippingBBox.w;
-        let h = clippingBBox.h;
-
-        if (mc_width === null) {
-          mc_width = w;
-        } else {
-          mc_width = Math.max(mc_x + mc_width, x, x + w) -
-            Math.min(mc_x, x, x + w);
-        }
-
-        if (mc_height === null) {
-          mc_height = h;
-        } else {
-          mc_height = Math.max(mc_y + mc_height, y, y + h) -
-            Math.min(mc_y, y, y + h);
-        }
-
-        if (mc_x === null) {
-          mc_x = Math.min(x, x + w);
-        } else {
-          mc_x = Math.min(mc_x, x, x + w);
-        }
-
-        if (mc_y === null) {
-          mc_y = Math.min(y, y + h);
-        } else {
-          mc_y = Math.min(mc_y, y, y + h);
-        }
-      }
-
-      function getRectBoundingBox(x, y, w, h) {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-        let [x1, y1] = Util.applyTransform([x, y], state.ctm);
-        let [x2, y2] = Util.applyTransform([x + w, y], state.ctm);
-        let [x3, y3] = Util.applyTransform([x, y + h], state.ctm);
-        let [x4, y4] = Util.applyTransform([x + w, y + h], state.ctm);
-
-        x = Math.min(x1, x2, x3, x4);
-        y = Math.min(y1, y2, y3, y4);
-        w = Math.max(x1, x2, x3, x4) - x;
-        h = Math.max(y1, y2, y3, y4) - y;
-
-        if (state.w === null) {
-          state.w = Math.abs(w);
-        } else {
-          state.w = Math.max(state.x + state.w, x, x + w) -
-            Math.min(state.x, x, x + w);
-        }
-
-        if (state.h === null) {
-          state.h = Math.abs(h);
-        } else {
-          state.h = Math.max(state.y + state.h, y, y + h) -
-            Math.min(state.y, y, y + h);
-        }
-
-        if (state.x === null) {
-          state.x = Math.min(x, x + w);
-        } else {
-          state.x = Math.min(state.x, x, x + w);
-        }
-
-        if (state.y === null) {
-          state.y = Math.min(y, y + h);
-        } else {
-          state.y = Math.min(state.y, y, y + h);
-        }
-      }
-
-      function getLineBoundingBox(x, y) {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-        [x, y] = Util.applyTransform([x, y], state.ctm);
-
-        if (state.w === null) {
-          state.w = Math.abs(x - state.move_x);
-        } else {
-          state.w = Math.max(x, state.move_x, state.x + state.w) -
-            Math.min(x, state.move_x, state.x);
-        }
-
-        if (state.h === null) {
-          state.h = Math.abs(y - state.move_y);
-        } else {
-          state.h = Math.max(y, state.move_y, state.y + state.h) -
-            Math.min(y, state.move_y, state.y);
-        }
-
-        if (state.x === null) {
-          state.x = Math.min(x, state.move_x);
-        } else {
-          state.x = Math.min(x, state.move_x, state.x);
-        }
-
-        if (state.y === null) {
-          state.y = Math.min(y, state.move_y);
-        } else {
-          state.y = Math.min(y, state.move_y, state.y);
-        }
-
-        //Next line will start from the end of current line
-        state.move_x = x;
-        state.move_y = y;
-      }
-
-      function getCurve(a, b, c, d) {
-        return function curve(t) {
-          return Math.pow(1 - t, 3) * a + 3 * t * Math.pow(1 - t, 2) * b + 3 * t * t * (1 - t) * c + t * t * t * d;
-        }
-      }
-
-      //Equate the derivative to zero in order to find local extremum and solve the equation
-      function getCurveRoots(a, b, c, d) {
-        let sqrt;
-        let root_1;
-        let root_2;
-
-        sqrt = Math.pow(6 * a - 12 * b + 6 * c, 2)
-          - 4 * (3 * b - 3 * a) * (-3 * a + 9 * b - 9 * c + 3 * d);
-        root_1 = null;
-        root_2 = null;
-
-        //Calculate roots if equation has roots and they are real
-        //Equation has infinite(too big) roots if denominator is too small
-        if (Math.abs(a + 3 * c - 3 * b - d) > Math.pow(0.1, -10)) {
-          if (sqrt >= 0) {
-            root_1 = ((-6 * a + 12 * b - 6 * c) + Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-            root_2 = ((-6 * a + 12 * b - 6 * c) - Math.sqrt(sqrt)) / (2 * (-3 * a + 9 * b - 9 * c + 3 * d));
-          }
-        } else if (sqrt > Math.pow(0.1, -10)) {
-          root_1 = (a - b) / (2 * a - 4 * b + 2 * c);
-        }
-
-        //We are only interested in roots that lay in range from 0 to 1
-        //Ignore other ones
-        if (root_1 !== null && (root_1 < 0 || root_1 > 1)) {
-          root_1 = null;
-        }
-        if (root_2 !== null && (root_2 < 0 || root_2 > 1)) {
-          root_2 = null;
-        }
-
-        return [root_1, root_2];
-      }
-
-      function getCurveBoundingBox(op, x0, y0, x1, y1, x2, y2, x3, y3) {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-        if (op !== OPS.curveTo2) {
-          [x1, y1] = Util.applyTransform([x1, y1], state.ctm);
-        }
-        [x2, y2] = Util.applyTransform([x2, y2], state.ctm);
-        [x3, y3] = Util.applyTransform([x3, y3], state.ctm);
-
-        let curveX = getCurve(x0, x1, x2, x3);
-        let curveY = getCurve(y0, y1, y2, y3);
-
-        let [root_1, root_2] = getCurveRoots(x0, x1, x2, x3);
-
-        let minX = Math.min(x0, x3, root_1 !== null ? curveX(root_1) : Number.MAX_VALUE, root_2 !== null ? curveX(root_2) : Number.MAX_VALUE);
-        let maxX = Math.max(x0, x3, root_1 !== null ? curveX(root_1) : Number.MIN_VALUE, root_2 !== null ? curveX(root_2) : Number.MIN_VALUE);
-
-        [root_1, root_2] = getCurveRoots(y0, y1, y2, y3);
-
-        let minY = Math.min(y0, y3, root_1 !== null ? curveY(root_1) : Number.MAX_VALUE, root_2 !== null ? curveY(root_2) : Number.MAX_VALUE);
-        let maxY = Math.max(y0, y3, root_1 !== null ? curveY(root_1) : Number.MIN_VALUE, root_2 !== null ? curveY(root_2) : Number.MIN_VALUE);
-
-        let x = minX;
-        let y = minY;
-        let h = maxY - minY;
-        let w = maxX - minX;
-
-        if (state.w === null) {
-          state.w = Math.abs(w);
-        } else {
-          state.w = Math.max(state.x + state.w, x, x + w) -
-            Math.min(state.x, x, x + w);
-        }
-
-        if (state.h === null) {
-          state.h = Math.abs(h);
-        } else {
-          state.h = Math.max(state.y + state.h, y, y + h) -
-            Math.min(state.y, y, y + h);
-        }
-
-        if (state.x === null) {
-          state.x = Math.min(x, x + w);
-        } else {
-          state.x = Math.min(state.x, x, x + w);
-        }
-
-        if (state.y === null) {
-          state.y = Math.min(y, y + h);
-        } else {
-          state.y = Math.min(state.y, y, y + h);
-        }
-
-        state.move_x = x;
-        state.move_y = y;
-      }
-
-      function getClip() {
-        if (clipping) {
-          let state = mcGraphicsState[mcGraphicsState.length - 1];
-
-          if (state.clip === null) {
-            state.clip = {
-              x: state.x,
-              y: state.y,
-              w: state.w,
-              h: state.h
-            };
-          } else {
-            //Intersection with previous clip
-            state.clip = {
-              x: Math.max(state.x, state.clip.x),
-              y: Math.max(state.y, state.clip.y),
-              w: Math.min(state.x + state.w, state.clip.x + state.clip.w) - Math.max(state.x, state.clip.x),
-              h: Math.min(state.y + state.h, state.clip.y + state.clip.h) - Math.max(state.y, state.clip.y),
-            }
-          }
-
-          clipping = false;
-        }
-      }
-
-      function getImageBoundingBox() {
-        let state = mcGraphicsState[mcGraphicsState.length - 1];
-        let [x0, y0] = Util.applyTransform([0, 0], state.ctm);
-        let [x1, y1] = Util.applyTransform([0, 1], state.ctm);
-        let [x2, y2] = Util.applyTransform([1, 1], state.ctm);
-        let [x3, y3] = Util.applyTransform([1, 0], state.ctm);
-
-        state.x = Math.min(x0, x1, x2, x3);
-        state.y = Math.min(y0, y1, y2, y3);
-        state.w = Math.max(x0, x1, x2, x3) - state.x;
-        state.h = Math.max(y0, y1, y2, y3) - state.y;
-      }
-
-      var positionByMCID = {};
-      var mc_x = null, mc_width = null, mc_y = null, mc_height = null;
-      var mcid = [];
-      var mcTextState = new TextState();
-      var mcGraphicsState = [{
-        x: null,
-        y: null,
-        w: null,
-        h: null,
-        move_x: 0,
-        move_y: 0,
-        ctm: IDENTITY_MATRIX.slice(),
-        clip: null
-      }];
-      var clipping = false;
       return new Promise(function promiseBody(resolve, reject) {
         var next = function (promise) {
           promise.then(function () {
@@ -1374,45 +968,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           var args = operation.args;
           var fn = operation.fn;
           switch (fn | 0) {
-            case OPS.restore:
-              if (mcGraphicsState.length !== 1) {
-                mcGraphicsState.pop();
-              }
-              break;
-            case OPS.save:
-              mcGraphicsState.push(JSON.parse(JSON.stringify(mcGraphicsState[mcGraphicsState.length - 1])));
-              break;
-            case OPS.fill:
-            case OPS.eoFill:
-            case OPS.eoFillStroke:
-            case OPS.fillStroke:
-            case OPS.stroke:
-            case OPS.closeEOFillStroke:
-            case OPS.closeFillStroke:
-            case OPS.closeStroke:
-              getClip();
-              saveGraphicsBoundingBox();
-              break;
-            case OPS.endPath:
-              getClip();
-              mcGraphicsState[mcGraphicsState.length - 1] = {
-                x: null,
-                y: null,
-                w: null,
-                h: null,
-                move_x: 0,
-                move_y: 0,
-                ctm: IDENTITY_MATRIX.slice(),
-                clip: mcGraphicsState[mcGraphicsState.length - 1].clip
-              };
-              break;
-            case OPS.transform:
-              mcGraphicsState[mcGraphicsState.length - 1].ctm = Util.transform(mcGraphicsState[mcGraphicsState.length - 1].ctm, args);
-              break;
-            case OPS.clip:
-            case OPS.eoClip:
-              clipping = true;
-              break;
             case OPS.paintXObject:
               // eagerly compile XForm objects
               var name = args[0].name;
@@ -1451,8 +1006,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                   }, rejectXObject);
                   return;
                 } else if (type.name === 'Image') {
-                  getImageBoundingBox();
-                  saveGraphicsBoundingBox();
+                  boundingBoxCalculator.parseOperator(OPS.paintXObject, [type.name]);
                   self.buildPaintImageXObject({
                     resources,
                     image: xobj,
@@ -1484,22 +1038,14 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               return;
             case OPS.setFont:
               var fontSize = args[1];
-              mcTextState.fontSize = args[1];
               // eagerly collect all fonts
               next(self.handleSetFont(resources, args, null, operatorList,
                 task, stateManager.state).then(function (translated) {
                 operatorList.addDependency(translated.loadedName);
-                mcTextState.fontMatrix = translated.font.fontMatrix;
-                mcTextState.font = translated.font;
+                boundingBoxCalculator.parseOperator(OPS.setFont, [fontSize, translated]);
                 operatorList.addOp(OPS.setFont, [translated.loadedName, fontSize]);
               }));
               return;
-            case OPS.setTextMatrix:
-              mcTextState.setTextMatrix(args[0], args[1], args[2], args[3],
-                args[4], args[5]);
-              mcTextState.setTextLineMatrix(args[0], args[1], args[2], args[3],
-                args[4], args[5]);
-              break;
             case OPS.endInlineImage:
               var cacheKey = args[0].cacheKey;
               if (cacheKey) {
@@ -1521,7 +1067,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               return;
             case OPS.showText:
               args[0] = self.handleText(args[0], stateManager.state);
-              getTextBoundingBox(args[0]);
               break;
             case OPS.showSpacedText:
               var arr = args[0];
@@ -1539,61 +1084,27 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               }
               args[0] = combinedGlyphs;
               fn = OPS.showText;
-              getTextBoundingBox(args[0]);
-              break;
-            case OPS.nextLine:
-              mcTextState.carriageReturn();
-              break;
-            case OPS.setCharSpacing:
-              mcTextState.charSpacing = args[0];
-              break;
-            case OPS.setWordSpacing:
-              mcTextState.wordSpacing = args[0];
-              break;
-            case OPS.setHScale:
-              mcTextState.textHScale = args[0] / 100;
-              break;
-            case OPS.setLeading:
-              mcTextState.leading = args[0];
-              break;
-            case OPS.setTextRise:
-              mcTextState.textRise = args[0];
-              break;
-            case OPS.setLeadingMoveText:
-              mcTextState.leading = -args[1];
-              mcTextState.translateTextLineMatrix(...args);
-              mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
-              break;
-            case OPS.moveText:
-              mcTextState.translateTextLineMatrix(args[0], args[1]);
-              mcTextState.textMatrix = mcTextState.textLineMatrix.slice();
               break;
             case OPS.nextLineShowText:
-              mcTextState.carriageReturn();
               operatorList.addOp(OPS.nextLine);
+              boundingBoxCalculator.parseOperator(OPS.nextLine);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
-              getTextBoundingBox(args[0]);
               break;
             case OPS.nextLineSetSpacingShowText:
-              mcTextState.carriageReturn();
-              mcTextState.wordSpacing = args[0];
-              mcTextState.charSpacing = args[1];
               operatorList.addOp(OPS.nextLine);
               operatorList.addOp(OPS.setWordSpacing, [args.shift()]);
               operatorList.addOp(OPS.setCharSpacing, [args.shift()]);
+              boundingBoxCalculator.parseOperator(OPS.nextLine);
+              boundingBoxCalculator.parseOperator(OPS.setWordSpacing, [args.shift()]);
+              boundingBoxCalculator.parseOperator(OPS.setCharSpacing, [args.shift()]);
               args[0] = self.handleText(args[0], stateManager.state);
               fn = OPS.showText;
-              getTextBoundingBox(args[0]);
               break;
             case OPS.setTextRenderingMode:
               stateManager.state.textRenderingMode = args[0];
               break;
 
-            case OPS.beginText:
-              mcTextState.textMatrix = IDENTITY_MATRIX.slice();
-              mcTextState.textLineMatrix = IDENTITY_MATRIX.slice();
-              break;
             case OPS.setFillColorSpace:
               stateManager.state.fillColorSpace =
                 ColorSpace.parse(args[0], xref, resources,
@@ -1693,91 +1204,22 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 stateManager));
               return;
             case OPS.moveTo:
-              let ctm = mcGraphicsState[mcGraphicsState.length - 1].ctm.slice();
-              [mcGraphicsState[mcGraphicsState.length - 1].move_x, mcGraphicsState[mcGraphicsState.length - 1].move_y] = Util.applyTransform(args, ctm);
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.lineTo:
-              getLineBoundingBox(args[0], args[1]);
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.curveTo:
-              getCurveBoundingBox(
-                OPS.curveTo,
-                mcGraphicsState[mcGraphicsState.length - 1].move_x,
-                mcGraphicsState[mcGraphicsState.length - 1].move_y,
-                args[0],
-                args[1],
-                args[2],
-                args[3],
-                args[4],
-                args[5],
-              );
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.curveTo2:
-              getCurveBoundingBox(
-                OPS.curveTo2,
-                mcGraphicsState[mcGraphicsState.length - 1].move_x,
-                mcGraphicsState[mcGraphicsState.length - 1].move_y,
-                mcGraphicsState[mcGraphicsState.length - 1].move_x,
-                mcGraphicsState[mcGraphicsState.length - 1].move_y,
-                args[0],
-                args[1],
-                args[2],
-                args[3]
-              );
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.curveTo3:
-              getCurveBoundingBox(
-                OPS.curveTo3,
-                mcGraphicsState[mcGraphicsState.length - 1].move_x,
-                mcGraphicsState[mcGraphicsState.length - 1].move_y,
-                args[0],
-                args[1],
-                args[2],
-                args[3],
-                args[2],
-                args[3]
-              );
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.closePath:
-              self.buildPath(operatorList, fn, args);
-              continue;
             case OPS.rectangle:
-              getRectBoundingBox(args[0], args[1], args[2], args[3]);
               self.buildPath(operatorList, fn, args);
+              boundingBoxCalculator.parseOperator(fn, args);
+              continue;
+            case OPS.beginMarkedContent:
+            case OPS.beginMarkedContentProps:
+            case OPS.endMarkedContent:
+              boundingBoxCalculator.parseOperator(fn, args);
               continue;
             case OPS.markPoint:
             case OPS.markPointProps:
-            case OPS.beginMarkedContent:
-              //Marked content forms the scope
-              mcid.push(null);
-              continue;
-            case OPS.beginMarkedContentProps:
-              if (isDict(args[1]) && args[1].has('MCID')) {
-                mc_x = mc_y = mc_width = mc_height = null;
-
-                //Clear graphics bounding box to split graphics in different marked content
-                mcGraphicsState[mcGraphicsState.length - 1].x = null;
-                mcGraphicsState[mcGraphicsState.length - 1].y = null;
-                mcGraphicsState[mcGraphicsState.length - 1].w = null;
-                mcGraphicsState[mcGraphicsState.length - 1].h = null;
-
-                mcid.push(args[1].get('MCID'));
-              } else {
-                //Marked content with no MCID still forms the scope
-                mcid.push(null);
-              }
-              continue;
-            case OPS.endMarkedContent:
-              let current_mcid = mcid.pop();
-              if (Number.isInteger(current_mcid) && !positionByMCID[current_mcid]) {
-                positionByMCID[current_mcid] = {x: mc_x, y: mc_y, width: mc_width, height: mc_height};
-              }
-              continue;
             case OPS.beginCompat:
             case OPS.endCompat:
               // Ignore operators where the corresponding handlers are known to
@@ -1803,6 +1245,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 }
               }
           }
+          boundingBoxCalculator.parseOperator(fn, args);
           operatorList.addOp(fn, args);
         }
         if (stop) {
@@ -1815,7 +1258,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         // Add extra data about marked content as last element of operator list
         // with corresponding function 'save', because it won't affect on
         // the process of rendering
-        resolve(positionByMCID);
+        resolve(boundingBoxCalculator.boundingBoxes);
       }).catch((reason) => {
         if (this.options.ignoreErrors) {
           // Error(s) in the OperatorList -- sending unsupported feature
@@ -3305,7 +2748,6 @@ var StateManager = (function StateManagerClosure() {
     this.state = initialState;
     this.stateStack = [];
   }
-
   StateManager.prototype = {
     save() {
       var old = this.state;
@@ -3697,4 +3139,6 @@ var EvaluatorPreprocessor = (function EvaluatorPreprocessorClosure() {
 
 export {
   PartialEvaluator,
+  StateManager,
+  TextState
 };
