@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '626b59d';
+var pdfjsBuild = '5e01a9d';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13145,8 +13145,6 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -13179,7 +13177,7 @@ function () {
 
   _createClass(CatalogMain, [{
     key: "getTreeElement",
-    value: function getTreeElement(el, page) {
+    value: function getTreeElement(el, page, ref) {
       var _this = this;
 
       if ((0, _primitives.isDict)(el) && el.has('Pg')) {
@@ -13195,7 +13193,11 @@ function () {
       }
 
       if ((0, _primitives.isDict)(el) && el.has('K')) {
-        return _defineProperty({}, (0, _util.stringToUTF8String)(el.get('S').name), this.getTreeElement(el.get('K'), page));
+        return {
+          name: (0, _util.stringToUTF8String)(el.get('S').name),
+          children: this.getTreeElement(el.get('K'), page, el.getRaw('K')),
+          ref: ref
+        };
       }
 
       if ((0, _primitives.isDict)(el) && el.has('Obj')) {
@@ -13224,8 +13226,8 @@ function () {
             };
           } else if (!(subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) && subel.get('Type') !== 'OBJR') {
             return _this.getTreeElement(subel, page);
-          } else {
-            return _this.getTreeElement(_this.xref.fetch(subel, page));
+          } else if (subel.hasOwnProperty('num') && subel.hasOwnProperty('gen')) {
+            return _this.getTreeElement(_this.xref.fetch(subel), page, subel);
           }
         });
       }
@@ -13835,7 +13837,7 @@ function () {
   }, {
     key: "structureTree",
     get: function get() {
-      return (0, _util.shadow)(this, 'structureTree', this.getTreeElement(this.structTreeRoot.get('K')));
+      return (0, _util.shadow)(this, 'structureTree', this.getTreeElement(this.structTreeRoot.get('K'), null, this.structTreeRoot.getRaw('K')));
     }
   }, {
     key: "toplevelPagesDict",

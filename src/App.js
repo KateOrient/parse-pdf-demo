@@ -91,12 +91,8 @@ class App extends React.Component {
                     bbox: bbox,
                     path: path
                 });
-            } else {
-                Object.keys(node).forEach(childKey => {
-                    if (node[childKey]) {
-                        this.getBoundingBoxesFromTree(tagsData, node[childKey], node, [...path, childKey]);
-                    }
-                });
+            } else if (node.hasOwnProperty('name') && node.hasOwnProperty('children')) {
+                this.getBoundingBoxesFromTree(tagsData, node.children, node, [...path, node.name]);
             }
         }
     };
