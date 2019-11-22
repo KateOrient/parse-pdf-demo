@@ -1,7 +1,7 @@
 import React from 'react';
 import {Document, pdfjs} from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
-import testPdf from './files/demo_tags.pdf';
+import defaultSample from './files/Default_sample.pdf';
 import _ from 'lodash';
 
 import PdfPage from './components/PdfPage';
@@ -27,8 +27,8 @@ class App extends React.Component {
         this.state = {
             numPages: null,
             pageNumber: 1,
-            pdf: testPdf,
-            title: testPdf.name,
+            pdf: defaultSample,
+            title: defaultSample.name,
             boundingBoxes: null,
             renderedPages: 0,
             error: null,

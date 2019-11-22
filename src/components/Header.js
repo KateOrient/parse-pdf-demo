@@ -1,74 +1,76 @@
 import React from 'react';
 
-import testPdf from '../files/demo_tags.pdf';
-import mediumPdf from '../files/test_2.pdf';
-import bigPdf from '../files/test.pdf';
-import hugePdf from '../files/huge.pdf';
-import testWithPageTreeDepth2 from '../files/test_page_tree_depth_2.pdf';
-import testWithGraphics from '../files/test_with_graphics.pdf';
+import _ from 'lodash';
 
-let disabledSize = 'small';
+import Default_sample from '../files/Default_sample.pdf';
+import STEM_Sample from '../files/STEM_Sample.pdf';
+import Det_is_Berlin from '../files/Det_is_Berlin.pdf';
+import Book_catalog from '../files/Book_catalog.pdf';
+import PDFUA_Reference from '../files/PDFUA-Reference-03_(Danish_Association-event).pdf';
+import Nutshell from '../files/Nutshell.pdf';
+
+
+let availableSamples = [
+    {
+        title: 'Default sample',
+        file: Default_sample
+    },
+    {
+        title: 'STEM Sample',
+        file: STEM_Sample
+    },
+    {
+        title: 'Det is Berlin',
+        file: Det_is_Berlin
+    },
+    {
+        title: 'Book catalog',
+        file: Book_catalog
+    },
+    {
+        title: 'PDF/UA Reference',
+        file: PDFUA_Reference
+    },
+    {
+        title: 'Nutshell',
+        file: Nutshell
+    }
+];
+
+let selectedFileIndex = 0;
 
 function Header(props) {
     let uploadInputRef;
+
     function setUploadInputRef(node) {
         uploadInputRef = node;
     }
 
     function onUploadPdfClick() {
+        selectedFileIndex = null;
         uploadInputRef.click();
     }
 
-    function uploadTestPdf(size) {
-        let file;
-        switch (size) {
-            case 'small':
-                file = testPdf;
-                break;
-            case 'medium':
-                file = mediumPdf;
-                break;
-            case 'big':
-                file = bigPdf;
-                break;
-            case 'huge':
-                file = hugePdf;
-                break;
-            case 'testWithPageTreeDepth2':
-                file = testWithPageTreeDepth2;
-                break;
-            case 'testWithGraphics':
-                file = testWithGraphics;
-                break;
-        }
-
-        return (e) => {
-            disabledSize = size;
-            props.onUploadSctrictFile(file);
+    function uploadTestPdf(sample) {
+        return () => {
+            selectedFileIndex = _.findIndex(availableSamples, sample);
+            props.onUploadSctrictFile(sample.file);
         };
+    }
+
+    function renderSampleButtons() {
+        return _.map(availableSamples, (sample, index) => (
+            <button onClick={uploadTestPdf(sample)} className="app-btn"
+                    disabled={index === selectedFileIndex || props.loading}>
+                {sample.title}
+            </button>
+        ));
     }
 
     return (
         <header className="App-header">
-            <section className=""app-btn-pane>
-                <button onClick={uploadTestPdf('small')} className="app-btn" disabled={disabledSize === 'small' || props.loading}>
-                    Small pdf
-                </button>
-                <button onClick={uploadTestPdf('medium')} className="app-btn" disabled={disabledSize === 'medium' || props.loading}>
-                    Medium pdf
-                </button>
-                <button onClick={uploadTestPdf('big')} className="app-btn" disabled={disabledSize === 'big' || props.loading}>
-                    Big pdf
-                </button>
-                <button onClick={uploadTestPdf('huge')} className="app-btn" disabled={disabledSize === 'huge' || props.loading}>
-                    Huge pdf
-                </button>
-                <button onClick={uploadTestPdf('testWithPageTreeDepth2')} className="app-btn" disabled={disabledSize === 'testWithPageTreeDepth2' || props.loading}>
-                    Pdf with page tree depth of 2
-                </button>
-                <button onClick={uploadTestPdf('testWithGraphics')} className="app-btn" disabled={disabledSize === 'testWithGraphics' || props.loading}>
-                    Pdf with graphics
-                </button>
+            <section className="" app-btn-pane>
+                {renderSampleButtons()}
                 <button onClick={onUploadPdfClick} className="app-btn" disabled={props.loading}>
                     Upload other pdf
                 </button>
