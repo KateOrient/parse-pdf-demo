@@ -157,7 +157,6 @@ class App extends React.Component {
     //  Create page overlay for BBOXes
     onPageRenderSuccess = (page) => {
         page.getOperatorList().then((data) => {
-            console.log(data);
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = {...this.state.bboxByPage};
             bboxByPage[page.pageIndex] = positionData || {};
@@ -288,7 +287,7 @@ class App extends React.Component {
         let file = e.target.files[0];
         let reader = new FileReader();
 
-        reader.onload = this.onUploadEnd(file);
+        reader.onload = this.onUploadEnd;
 
         if (!file) {
             this.setState({
@@ -300,7 +299,7 @@ class App extends React.Component {
         reader.readAsArrayBuffer(file);
     };
 
-    onUploadSctrictFile = (pdf) => {
+    onUploadSampleFile = (pdf) => {
         loadedPages = 0;
         this.setState({
             loading: true,
@@ -310,6 +309,7 @@ class App extends React.Component {
     };
 
     onUploadEnd = (pdf) => {
+        console.log(pdf);
         document.getElementById('container').innerHTML = "";
 
         this.setState({
@@ -330,7 +330,7 @@ class App extends React.Component {
         const {numPages, title, loading} = this.state;
         return (
             <div className={`App ${loading ? '_loading' : ''}`}>
-                <Header onUploadFile={this.onUploadFile} onUploadSctrictFile={this.onUploadSctrictFile}
+                <Header onUploadFile={this.onUploadFile} onUploadSampleFile={this.onUploadSampleFile}
                         loading={loading}/>
                 <main className="app-main-body">
                     <div className="pdf-wrapper">

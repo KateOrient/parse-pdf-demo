@@ -54,13 +54,13 @@ function Header(props) {
     function uploadTestPdf(sample) {
         return () => {
             selectedFileIndex = _.findIndex(availableSamples, sample);
-            props.onUploadSctrictFile(sample.file);
+            props.onUploadSampleFile(sample.file);
         };
     }
 
     function renderSampleButtons() {
         return _.map(availableSamples, (sample, index) => (
-            <button onClick={uploadTestPdf(sample)} className="app-btn"
+            <button onClick={uploadTestPdf(sample)} className="app-btn" key={index}
                     disabled={index === selectedFileIndex || props.loading}>
                 {sample.title}
             </button>
@@ -69,7 +69,7 @@ function Header(props) {
 
     return (
         <header className="App-header">
-            <section className="" app-btn-pane>
+            <section className="app-btn-pane">
                 {renderSampleButtons()}
                 <button onClick={onUploadPdfClick} className="app-btn" disabled={props.loading}>
                     Upload other pdf
