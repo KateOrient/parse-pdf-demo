@@ -1,7 +1,7 @@
 import React from 'react';
 import {Document, pdfjs} from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
-import testPdf from './files/demo_tags.pdf';
+import defaultSample from './files/Default_sample.pdf';
 import _ from 'lodash';
 
 import PdfPage from './components/PdfPage';
@@ -27,8 +27,8 @@ class App extends React.Component {
         this.state = {
             numPages: null,
             pageNumber: 1,
-            pdf: testPdf,
-            title: testPdf.name,
+            pdf: defaultSample,
+            title: defaultSample.name,
             boundingBoxes: null,
             renderedPages: 0,
             error: null,
@@ -37,6 +37,7 @@ class App extends React.Component {
             classMap: {},
             loading: true,
             bboxByPage: {},
+            tagsData: null
         };
     }
 
@@ -46,6 +47,94 @@ class App extends React.Component {
             this.setState({renderedPages: 0});
         }
     }
+
+    /*
+     * Calculate bounding boxes by pages
+     * @param tagData {array} array of bounding boxes for pages in which all data is stored
+     * @param node {object} current structure element
+     * @param parent {object} parent object for current node
+     * @param path {array} tree path for current node
+     */
+    getBoundingBoxesFromTree = (tagsData, node = _.cloneDeep(this.state.structureTree), parent = null, path = []) => {
+        if (node instanceof Array) {
+            node.forEach(child => {
+                if (child) {
+                    this.getBoundingBoxesFromTree(tagsData, child, node, path);
+                }
+            });
+        } else if (node instanceof Object) {
+            if (node.hasOwnProperty('mcid') && node.hasOwnProperty('pageIndex')) { //leaf that has corresponding MCS at the stream
+                let bbox = null;
+                bbox = this.getBoundingBoxForChildren(parent, node.pageIndex);
+                if (!tagsData.hasOwnProperty(node.pageIndex)) {
+                    tagsData[node.pageIndex] = [];
+                }
+                tagsData[node.pageIndex].push({
+                    mcid: node.mcid,
+                    el_bbox: this.state.bboxByPage[node.pageIndex][node.mcid],
+                    bbox: bbox,
+                    path: path
+                });
+            } else if (node.hasOwnProperty('rect') && node.hasOwnProperty('pageIndex')) { //leaf that is Obj and has no corresponding MCS at the stream
+                if (!tagsData.hasOwnProperty(node.pageIndex)) {
+                    tagsData[node.pageIndex] = [];
+                }
+                let bbox = {
+                    x: Math.min(node.rect[0], node.rect[2]),
+                    y: Math.min(node.rect[1], node.rect[3]),
+                    width: Math.abs(node.rect[0] - node.rect[2]),
+                    height: Math.abs(node.rect[1] - node.rect[3])
+                };
+                tagsData[node.pageIndex].push({
+                    pageIndex: node.pageIndex,
+                    el_bbox: bbox,
+                    bbox: bbox,
+                    path: path
+                });
+            } else if (node.hasOwnProperty('name') && node.hasOwnProperty('children')) {
+                this.getBoundingBoxesFromTree(tagsData, node.children, node, [...path, node.name]);
+            }
+        }
+    };
+
+    uniteBoundingBoxes = (newBoundingBox, oldBoundingBox) => {
+        if (_.isNil(newBoundingBox)) {
+            return oldBoundingBox;
+        } else if (_.isNil(oldBoundingBox)) {
+            return _.cloneDeep(newBoundingBox);
+        } else {
+            return {
+                x: Math.min(newBoundingBox.x, oldBoundingBox.x),
+                y: Math.min(newBoundingBox.y, oldBoundingBox.y),
+                width: Math.max(newBoundingBox.x + newBoundingBox.width, oldBoundingBox.x + oldBoundingBox.width) - Math.min(newBoundingBox.x, oldBoundingBox.x),
+                height: Math.max(newBoundingBox.y + newBoundingBox.height, oldBoundingBox.y + oldBoundingBox.height) - Math.min(newBoundingBox.y, oldBoundingBox.y)
+            };
+        }
+    };
+
+    //Get bounding boxes for elements at the same level
+    getBoundingBoxForChildren = (node, pageIndex) => {
+        if (node instanceof Array) {
+            let bbox = null;
+            node.map(child => bbox = this.uniteBoundingBoxes(this.getBoundingBoxForChildren(child, pageIndex), bbox));
+            return bbox;
+        } else if (node instanceof Object) {
+            if (node.hasOwnProperty('mcid') && node.hasOwnProperty('pageIndex')) {
+                let currentBbox = this.state.bboxByPage[node.pageIndex][node.mcid];
+                if (!_.isNil(currentBbox) && !_.isNaN(currentBbox.x) && !_.isNaN(currentBbox.y)
+                    && !_.isNaN(currentBbox.width) && !_.isNaN(currentBbox.height) && node.pageIndex === pageIndex) {
+                    return currentBbox;
+                }
+                return null;
+            } else {
+                let bbox = null;
+                Object.keys(node).map(childKey => {
+                    bbox = this.uniteBoundingBoxes(this.getBoundingBoxForChildren(node[childKey], pageIndex), bbox);
+                });
+                return bbox;
+            }
+        }
+    };
 
     //  Init data of uploaded PDF
     onDocumentLoadSuccess = (document) => {
@@ -71,7 +160,7 @@ class App extends React.Component {
             let positionData = data.argsArray[data.argsArray.length - 1];
             let bboxByPage = {...this.state.bboxByPage};
             bboxByPage[page.pageIndex] = positionData || {};
-            console.log('Data:', positionData);
+            //console.log('Data:', page.pageIndex, positionData);
 
             let canvas = document.getElementsByTagName('canvas')[page.pageIndex];
             let rect = canvas.getBoundingClientRect();
@@ -98,6 +187,11 @@ class App extends React.Component {
                 this.setState({
                     loading: false,
                     bboxByPage,
+                }, () => {
+                    let tagsData = {};
+                    this.getBoundingBoxesFromTree(tagsData);
+                    console.log(tagsData);
+                    this.setState({tagsData});
                 });
             } else {
                 this.state.bboxByPage = bboxByPage;
@@ -122,93 +216,11 @@ class App extends React.Component {
         return pagesArray;
     }
 
-    /*
-     * Get tag name of hovered bbox
-     * @param mcid {integer} id of bbox
-     * @param pageIndex {integer} tough pageIndex prevent confusing of wrong tag with similar mcid
-     * @param node {object} structure for searching
-     * @param parent {object} parent object for current node
-     * @param path {array} tree path for current node
-     *
-     * @return {
-     *      path {string} path to component through structure tree
-     *      relatives {array} tags from the same level
-     * }
-     */
-    findTag = (mcid, pageIndex, node = _.cloneDeep(this.state.structureTree), parent = null, path = []) => {
-        if (node instanceof Array) {
-            let result;
-            node.forEach(child => {
-                if (child) {
-                    let data = this.findTag(mcid, pageIndex, child, node, path);
-                    if (data) {
-                        result = data;
-                    }
-                }
-            });
-            return result;
-        } else if (node instanceof Object) {
-            if (node.hasOwnProperty('mcid') && node.hasOwnProperty('pageIndex')) { //leaf
-                if (node.mcid === mcid && node.pageIndex === pageIndex) {
-                    return {
-                        path,
-                        relatives: _.flattenDeep(this.findChildren(parent)).filter(el => el)
-                    }
-                }
-            } else {
-                let result;
-                Object.keys(node).forEach(childKey => {
-                    if (node[childKey]) {
-                        let data = this.findTag(mcid, pageIndex, node[childKey], node, [...path, childKey]);
-                        if (data) {
-                            result = data;
-                        }
-                    }
-                });
-                return result;
-            }
-        }
-    };
-
-    //Get all leafs that have node as a common root
-    findChildren = (node) => {
-        if (node === null) {
-            return [];
-        } else if (node instanceof Object) {
-            if (node.hasOwnProperty('mcid') && node.hasOwnProperty('pageIndex')) {
-                return node;
-            } else {
-                return Object.keys(node).map(childKey => {
-                    return this.findChildren(node[childKey]);
-                })
-            }
-        } else if (node instanceof Array) {
-            return node.map(child => this.findChildren(child));
-        }
-    };
-
     //  Set React ref
     setRef(target) {
         return (node) => {
             refs[target] = node;
         };
-    }
-
-    isInBbox({x, y, bboxList}) {
-        let bbox = false;
-        Object.keys(bboxList).forEach((key) => {
-            let isX = x >= bboxList[key].x && x <= (bboxList[key].x + bboxList[key].width);
-            let isY = y >= bboxList[key].y && y <= (bboxList[key].y + bboxList[key].height);
-
-            if (isX && isY) {
-                bbox = {
-                    ...bboxList[key],
-                    mcid: key,
-                };
-            }
-        });
-
-        return bbox;
     }
 
     /*
@@ -222,53 +234,19 @@ class App extends React.Component {
         let y = canvas.offsetHeight - (e.clientY - rect.top);
         let ctx = canvas.getContext('2d');
         let pageIndex = canvas.getAttribute('data-page');
-        let bboxList = this.state.bboxByPage[pageIndex];
+        let tagsDataByPage = this.state.tagsData[pageIndex];
 
         ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
         ctx.strokeStyle = 'red';
-        let bboxCoords = this.isInBbox({x, y, bboxList});
-        if (!bboxCoords) {
+
+        let tagData = _.find(tagsDataByPage, data => x >= data.el_bbox.x && x <= data.el_bbox.x + data.el_bbox.width &&
+            y >= data.el_bbox.y && y <= data.el_bbox.y + data.el_bbox.height);
+
+        if (!tagData) {
             this.fillDocData();
-            return;
-        }
-
-        let mcid = parseInt(bboxCoords.mcid);
-        let result = this.findTag(mcid, +pageIndex);
-        if (result) {
-            let path = result.path;
-            let relatives = result.relatives.filter(el => el.pageIndex === +pageIndex);
-            let tagRoleMapPath = '';
-            let minX = Number.MAX_VALUE;
-            let maxX = 0;
-            let minY = Number.MAX_VALUE;
-            let maxY = 0;
-            relatives.forEach(({mcid: elementMcid, pageIndex: page}, index) => {
-                if (+pageIndex !== page || !bboxList[elementMcid]) return;
-                let {x, y, width, height} = bboxList[elementMcid];
-                if (_.isNaN(x) || _.isNaN(y) || _.isNaN(width) || _.isNaN(height) ||
-                    _.isNull(x) || _.isNull(y) || _.isNull(width) || _.isNull(height)) return;
-                if (!index) {
-                    minX = x;
-                    maxX = x + width;
-                    minY = y;
-                    maxY = y + height;
-                }
-
-                minX = minX < x ? minX : x;
-                maxX = maxX > (x + width) ? maxX : (x + width);
-                minY = minY < y ? minY : y;
-                maxY = maxY > (y + height) ? maxY : (y + height);
-            });
-
-            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-
-            if (this.state.roleMap[path[path.length - 1]]) {
-                tagRoleMapPath = '-> ' + this.state.roleMap[path[path.length - 1]].name;
-            }
-
-            this.fillDocData(`${path[path.length - 1]} ${tagRoleMapPath}`, path.join(' -> '), mcid);
         } else {
-            ctx.strokeRect(bboxCoords.x, bboxCoords.y, bboxCoords.width, bboxCoords.height);
+            ctx.strokeRect(tagData.bbox.x, tagData.bbox.y, tagData.bbox.width, tagData.bbox.height);
+            this.fillDocData(tagData.path[tagData.path.length - 1], tagData.path.join(' -> '), tagData.mcid);
         }
     };
 
@@ -309,7 +287,7 @@ class App extends React.Component {
         let file = e.target.files[0];
         let reader = new FileReader();
 
-        reader.onload = this.onUploadEnd(file);
+        reader.onload = this.onUploadEnd;
 
         if (!file) {
             this.setState({
@@ -319,18 +297,19 @@ class App extends React.Component {
             return;
         }
         reader.readAsArrayBuffer(file);
-    }
+    };
 
-    onUploadSctrictFile = (pdf) => {
+    onUploadSampleFile = (pdf) => {
         loadedPages = 0;
         this.setState({
             loading: true,
             bboxByPage: {},
         });
         this.onUploadEnd(pdf);
-    }
+    };
 
     onUploadEnd = (pdf) => {
+        console.log(pdf);
         document.getElementById('container').innerHTML = "";
 
         this.setState({
@@ -338,20 +317,20 @@ class App extends React.Component {
             pageNumber: 1,
             pdf,
         })
-    }
+    };
 
     onError = (e) => {
         this.setState({
             error: e.message,
             loading: false,
         });
-    }
+    };
 
     render() {
         const {numPages, title, loading} = this.state;
         return (
             <div className={`App ${loading ? '_loading' : ''}`}>
-                <Header onUploadFile={this.onUploadFile} onUploadSctrictFile={this.onUploadSctrictFile}
+                <Header onUploadFile={this.onUploadFile} onUploadSampleFile={this.onUploadSampleFile}
                         loading={loading}/>
                 <main className="app-main-body">
                     <div className="pdf-wrapper">
