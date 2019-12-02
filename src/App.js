@@ -279,6 +279,8 @@ class App extends React.Component {
     };
 
     onUploadFile = (e) => {
+        document.getElementById('container').innerHTML = "";
+
         loadedPages = 0;
         this.setState({
             loading: true,
@@ -287,7 +289,7 @@ class App extends React.Component {
         let file = e.target.files[0];
         let reader = new FileReader();
 
-        reader.onload = this.onUploadEnd;
+        reader.onload = () => this.onUploadEnd(file);
 
         if (!file) {
             this.setState({
@@ -300,6 +302,8 @@ class App extends React.Component {
     };
 
     onUploadSampleFile = (pdf) => {
+        document.getElementById('container').innerHTML = "";
+
         loadedPages = 0;
         this.setState({
             loading: true,
@@ -309,9 +313,6 @@ class App extends React.Component {
     };
 
     onUploadEnd = (pdf) => {
-        console.log(pdf);
-        document.getElementById('container').innerHTML = "";
-
         this.setState({
             numPages: null,
             pageNumber: 1,
