@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "fd5b644239cfc1207e55c4e77ab4f8ee",
+    "revision": "c431dabbefb959707f57cae2f27ae619",
     "url": "/parse-pdf-demo/index.html"
   },
   {
-    "revision": "ab1b44c0090ffa9741af40f9085ec20d",
+    "revision": "68e45cb689c3db928849dbb883f7e70b",
     "url": "/parse-pdf-demo/pdf.worker.js"
   },
   {
@@ -12,7 +12,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/parse-pdf-demo/static/css/2.c83c8d54.chunk.css"
   },
   {
-    "revision": "fcba9fb3c1f9a4f7a6f4",
+    "revision": "e5ff1531736faa1b1479",
     "url": "/parse-pdf-demo/static/css/main.c604976c.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/parse-pdf-demo/static/js/2.b6840c2f.chunk.js"
   },
   {
-    "revision": "fcba9fb3c1f9a4f7a6f4",
-    "url": "/parse-pdf-demo/static/js/main.26fd3474.chunk.js"
+    "revision": "e5ff1531736faa1b1479",
+    "url": "/parse-pdf-demo/static/js/main.977661c4.chunk.js"
   },
   {
     "revision": "f1b2b4acf3a3787bfe4e",
