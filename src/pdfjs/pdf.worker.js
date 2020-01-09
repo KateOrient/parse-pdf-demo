@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '7b18fe7';
+var pdfjsBuild = '368c6e5';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13193,6 +13193,7 @@ function () {
       }
 
       if ((0, _primitives.isDict)(el) && el.has('K')) {
+        console.log('1', el.get('S'));
         return {
           name: (0, _util.stringToUTF8String)(el.get('S').name),
           children: this.getTreeElement(el.get('K'), page, el.getRaw('K')),
@@ -13202,9 +13203,18 @@ function () {
 
       if ((0, _primitives.isDict)(el) && el.has('Obj')) {
         var obj = el.get('Obj');
-        var type = obj.get('Type').name;
+        var type = null;
+
+        if (obj.has('Type')) {
+          type = obj.get('Type').name;
+        }
+
+        if (obj.has('Subtype')) {
+          type = obj.get('Subtype').name;
+        }
 
         switch (type) {
+          case 'Link':
           case 'Annot':
             var rect = obj.get('Rect');
             return {
@@ -13239,6 +13249,8 @@ function () {
         };
       }
 
+      console.log('3', el.get('Type'));
+
       if ((0, _primitives.isDict)(el) && el.has('Type') && el.get('Type').name === 'MCR') {
         return {
           mcid: el.get('MCID'),
@@ -13256,6 +13268,7 @@ function () {
         if ((0, _primitives.isRef)(kid)) {
           var kidObj = _this2.xref.fetch(kid);
 
+          console.log('4', kidObj.get('Type'));
           var kidObjType = kidObj.get('Type').name;
 
           switch (kidObjType) {
