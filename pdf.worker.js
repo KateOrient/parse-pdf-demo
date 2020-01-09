@@ -124,7 +124,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 var pdfjsVersion = '2.1.266';
-var pdfjsBuild = '9749bc5';
+var pdfjsBuild = '3b8e8a3';
 
 var pdfjsCoreWorker = __w_pdfjs_require__(1);
 
@@ -13202,9 +13202,18 @@ function () {
 
       if ((0, _primitives.isDict)(el) && el.has('Obj')) {
         var obj = el.get('Obj');
-        var type = obj.get('Type').name;
+        var type = null;
+
+        if (obj.has('Type')) {
+          type = obj.get('Type').name;
+        }
+
+        if (obj.has('Subtype')) {
+          type = obj.get('Subtype').name;
+        }
 
         switch (type) {
+          case 'Link':
           case 'Annot':
             var rect = obj.get('Rect');
             return {
