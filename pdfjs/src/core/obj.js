@@ -109,8 +109,15 @@ class CatalogMain {
 
     if (isDict(el) && el.has('Obj')) {
       let obj = el.get('Obj');
-      let type = obj.get('Type').name;
+      let type = null;
+      if (obj.has('Type')) {
+        type = obj.get('Type').name;
+      }
+      if (obj.has('Subtype')) {
+        type = obj.get('Subtype').name;
+      }
       switch (type){
+        case 'Link':
         case 'Annot':
           let rect = obj.get('Rect');
           return {
